@@ -41,14 +41,14 @@
 
 ```
 ┌──────────────────────────────────────────────────────┐
-│                  BACKEND (Java / JS)                  │
-│                                                       │
+│                  BACKEND (Java / JS)                 │
+│                                                      │
 │  ┌───────────────────┐   ┌───────────────────────┐   │
 │  │  Java Auth        │   │  Processador de Docs  │   │
 │  │  Service          │   │  (Minuta × Edital)    │   │
 │  │  ↕ Supabase Auth  │   │  → Épico 1            │   │
 │  └───────────────────┘   └───────────────────────┘   │
-│                                                       │
+│                                                      │
 │  ┌───────────────────┐   ┌───────────────────────┐   │
 │  │  Integrador       │   │  Supabase Client      │   │
 │  │  Portal           │   │  (camada de dados)    │   │
