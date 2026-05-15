@@ -48,7 +48,7 @@ Adjudicação & Homologação
 
 | Tecnologia | Uso |
 |---|---|
-| Java / JavaScript | Backend (a confirmar com os demais grupos) |
+| JavaScript & Node.js | Backend (a confirmar com os demais grupos) |
 | Supabase | BaaS — PostgreSQL + Auth + Realtime |
 | PostgreSQL | Banco de dados relacional (via Supabase) |
 | Portal da Transparência | API pública de dados governamentais |
@@ -59,22 +59,35 @@ Adjudicação & Homologação
 ## Estrutura do Projeto
 
 ```
-modulo-8/
-├── docs/
-│   ├── visao-requisitos.md      # Visão, requisitos e MoSCoW
-│   ├── DAS.md                   # Documento de Arquitetura de Software
-│   └── diagrams/                # Diagramas PlantUML
-│       ├── componentes.puml
-│       └── implantacao.puml
-├── src/
-│   ├── auth/                    # Autenticação via Supabase Auth
-│   ├── docs-processor/          # Comparação de documentos (Épico 1)
-│   ├── portal-integrator/       # Integração Portal da Transparência (Épico 2)
-│   └── supabase-client/         # Camada de acesso ao banco de dados
-├── tests/
-├── .env.example
-├── .gitignore
-└── README.md
+modulo-8/ 
+├── docs/                              
+│   ├── visao-requisitos.md 
+│   ├── DAS.md 
+│   └── diagrams/ 
+│       ├── componentes.puml 
+│       └── implantacao.puml 
+├── src/ 
+│   ├── models/                          # Camada de Dados e Regras de Negócio 
+│   │   ├── auth-schema.js               # Definições de usuários (vêm do auth) 
+│   │   ├── doc-comparison-model.js      # Lógica do Épico 1 (Processor) 
+│   │   └── portal-data-model.js         # Estrutura do Épico 2 (Integrator) 
+│   │ 
+│   ├── controllers/                   
+│   │   ├── auth-controller.js          
+│   │   ├── processor-controller.js       
+│   │   └── integrator-controller.js   
+│   │ 
+│   ├── views/                      
+│   │   ├── auth-ui/                  
+│   │   ├── processor-ui/             
+│   │   └── integrator-ui/              
+│   │ 
+│   └── shared/                           
+│       └── supabase-client.js         
+├── tests/                               
+├── .env.example 
+├── .gitignore 
+└── README.md 
 ```
 
 ---
