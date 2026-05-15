@@ -92,6 +92,11 @@ modulo-8/
 
 ---
 
+## Diagramas
+### Diagrama de Componentes
+[imgDiagramadeComponentes]("C:\Users\giova\Downloads\diagramaComponentes.puml")
+[imgDiagramadeImplnatacao]("C:\Users\giova\Downloads\diagramaImplantação.puml")
+
 ## Equipe
 
 | Nome | Papel |
