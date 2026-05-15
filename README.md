@@ -94,8 +94,8 @@ modulo-8/
 
 ## Diagramas
 ### Diagrama de Componentes
-[imgDiagramadeComponentes]("C:\Users\giova\Downloads\diagramaComponentes.puml")
-[imgDiagramadeImplnatacao]("C:\Users\giova\Downloads\diagramaImplantação.puml")
+[imgDiagramadeComponentes](https://github.com/hannarecks/Engenharia-de-Software-Trabalho/blob/ff125fc778ff391d8a92045d2835715297eb0425/docs/diagramaComponentes.puml)
+[imgDiagramadeImplnatacao](https://github.com/hannarecks/Engenharia-de-Software-Trabalho/blob/ff125fc778ff391d8a92045d2835715297eb0425/docs/diagramaImplanta%C3%A7%C3%A3o.puml)
 
 ## Equipe
 
