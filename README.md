@@ -2,7 +2,7 @@
 
 > Sistema SaaS de apoio a empresas em processos licitatórios, com foco na gestão e acompanhamento de contratos pós-certame.
 
-[![Jira](https://img.shields.io/badge/Jira-Backlog%20%26%20Sprints-0052CC?logo=jira&logoColor=white)](https://https://hannarecks.atlassian.net/jira/software/projects/SCRUM/boards/1)
+[![Trello](https://img.shields.io/badge/Trello-0079BF?style=for-the-badge&logo=trello&logoColor=white)](https://trello.com/b/TZFDmRAc/es-modulo-8)
 
 ---
 
