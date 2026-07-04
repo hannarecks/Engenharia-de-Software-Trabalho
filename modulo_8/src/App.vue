@@ -2,34 +2,25 @@
   <div id="app-root">
     <AppSidebar />
 
-    <div class="main">
+    <main class="main">
       <router-view />
-    </div>
+    </main>
   </div>
 </template>
 
 <script>
-import AppSidebar   from '@/components/AppSidebar.vue'
-import NewTaskModal from '@/components/NewTaskModal.vue'
-import TabOverview    from '@/views/TabOverview.vue'
-import TabDivergencias from '@/views/TabDivergencias.vue'
-
-import { initialTasks } from '@/data/mockData'
+import AppSidebar from "@/components/AppSidebar.vue";
 
 export default {
-  name: 'App',
+  name: "App",
   components: {
     AppSidebar,
-    NewTaskModal,
-    TabOverview,
-    TabDivergencias,
   },
-}
+};
 </script>
 
 <style>
-
-@import '@/assets/styles.css';
+@import "@/assets/styles.css";
 </style>
 
 <style scoped>
@@ -41,9 +32,8 @@ export default {
 
 .main {
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
+  overflow-y: auto;
+  padding: 20px;
+  background: #f5f5f5; 
 }
-
 </style>
