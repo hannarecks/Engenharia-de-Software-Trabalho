@@ -30,12 +30,6 @@
 <script>
 export default {
   name: "AppSidebar",
-  props: {
-    activeTab: {
-      type: String,
-      required: true,
-    },
-  },
   data() {
     return {
       items: [
