@@ -7,10 +7,6 @@
           CTR-2024-0047 · Fornecimento de Equipamentos de TI · PMSP · Vigência: 12/2024 – 11/2025
         </div>
       </div>
-      <div class="flex-row">
-        <button class="btn-secondary" @click="$emit('change-tab', 'compare')">⚖️ Comparar Documentos</button>
-        <button class="btn-primary" @click="$emit('open-modal')">+ Nova Tarefa</button>
-      </div>
     </div>
 
     <!-- KPIs -->

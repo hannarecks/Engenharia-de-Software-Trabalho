@@ -3,7 +3,6 @@
     <app-sidebar :active-tab="activeTab" @change-tab="changeTab" />
 
     <div class="main">
-      <app-topbar :active-tab="activeTab" @change-tab="changeTab" />
 
       <div class="content">
         <tab-overview
@@ -42,7 +41,6 @@
 
 <script>
 import AppSidebar   from '@/components/AppSidebar.vue'
-import AppTopbar    from '@/components/AppTopbar.vue'
 import NewTaskModal from '@/components/NewTaskModal.vue'
 import TabOverview    from '@/views/TabOverview.vue'
 import TabDivergencias from '@/views/TabDivergencias.vue'
@@ -53,7 +51,6 @@ export default {
   name: 'App',
   components: {
     AppSidebar,
-    AppTopbar,
     NewTaskModal,
     TabOverview,
     TabDivergencias,
