@@ -34,7 +34,7 @@ export default {
     return {
       items: [
         { icon: "mdi-home", title: "Editais", route: { name: "home" } },
-        { icon: "mdi-compare", title: "Compare", route: { name: "compare" } },
+        { icon: "mdi-compare", title: "Comparar Editais", route: { name: "compare" } },
         { icon: "mdi-alert", title: "Divergências", route: { name: "divergencias" } },
         { icon: "mdi-cash", title: "Pagamentos", route: { name: "pagamentos" } },
         { icon: "mdi-bell", title: "Alertas", route: { name: "alertas" } },
