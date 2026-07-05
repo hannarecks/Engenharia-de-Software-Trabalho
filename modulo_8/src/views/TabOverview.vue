@@ -4,135 +4,77 @@
       <div>
         <div class="page-title">Gestão de Contratos</div>
         <div class="page-subtitle">
-          CTR-2024-0047 · Fornecimento de Equipamentos de TI · PMSP · Vigência: 12/2024 – 11/2025
+          Todos os editais vencidos, organizados para uma consulta rápida.
         </div>
       </div>
     </div>
 
-    <!-- KPIs -->
-    <div class="kpi-grid">
-      <div class="kpi-card">
-        <div class="kpi-label">Valor Total do Contrato</div>
-        <div class="kpi-value">R$&nbsp;1,24M</div>
-        <div class="kpi-sub">Vigência: 12 meses</div>
-        <div class="kpi-accent-bar blue"></div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-label">Valor Pago</div>
-        <div class="kpi-value">R$&nbsp;517K</div>
-        <div class="kpi-sub"><span class="kpi-change up">↑ 41,7%</span> do total</div>
-        <div class="kpi-accent-bar green"></div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-label">Pagamentos Pendentes</div>
-        <div class="kpi-value">R$&nbsp;208K</div>
-        <div class="kpi-sub"><span class="kpi-change warn">⚠ 1 em atraso</span></div>
-        <div class="kpi-accent-bar amber"></div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-label">Divergências Abertas</div>
-        <div class="kpi-value">5</div>
-        <div class="kpi-sub"><span class="kpi-change down">● 2 de alta prioridade</span></div>
-        <div class="kpi-accent-bar red"></div>
-      </div>
-    </div>
+    <v-row no-gutters>
+      <v-col class="kpi-card" cols="12">
+        <h3 class="filtros-title">Filtros</h3>
 
-    <!-- Contract Timeline -->
-    <div class="contract-timeline-wrap">
-      <div class="ct-header">
-        <div>
-          <div class="ct-title">Ciclo de Vida do Contrato</div>
-          <div class="ct-phase">Fase atual: <strong>Execução e Entregas</strong></div>
-        </div>
-        <div class="badge green">
-          <div class="badge-dot-sm" style="background: var(--emerald)"></div>
-          Em execução
-        </div>
-      </div>
+        <v-row class="filtros-row">
+          <v-col cols="12" md="3">
+            <v-text-field
+              v-model="filtros.numeroEdital"
+              label="Número do Edital"
+              solo
+              flat
+              clearable
+              hide-details
+              class="filtro-input"
+            ></v-text-field>
+          </v-col>
 
-      <div class="ct-steps">
-        <div
-          v-for="step in steps"
-          :key="step.label"
-          class="ct-step"
-          :class="step.state"
-        >
-          <div class="ct-circle">{{ step.icon }}</div>
-          <div class="ct-label">{{ step.label }}</div>
-        </div>
-      </div>
+          <v-col cols="12" md="3">
+            <v-text-field
+              v-model="filtros.dataInicio"
+              label="Data de Início"
+              type="date"
+              solo
+              flat
+              clearable
+              hide-details
+              class="filtro-input"
+            ></v-text-field>
+          </v-col>
 
-      <div style="margin-top: 14px">
-        <div class="progress-labels">
-          <span>Progresso financeiro</span>
-          <span class="progress-value">41,7% executado</span>
-        </div>
-        <div class="progress-bar-wrap">
-          <div class="progress-bar-fill" style="width: 41.7%; background: var(--emerald)"></div>
-        </div>
-      </div>
-    </div>
+          <v-col cols="12" md="3">
+            <v-text-field
+              v-model="filtros.dataFim"
+              label="Data de Fim"
+              type="date"
+              solo
+              flat
+              clearable
+              hide-details
+              class="filtro-input"
+            ></v-text-field>
+          </v-col>
 
-    <!-- Two Columns -->
-    <div class="two-col">
-      <!-- Documents -->
-      <div class="panel">
-        <div class="panel-header">
-          <div>
-            <div class="panel-title">📁 Documentos Vinculados</div>
-            <div class="panel-subtitle">Artefatos do processo licitatório</div>
-          </div>
-          <button class="btn-secondary" style="font-size: 12px; padding: 5px 10px">+ Anexar</button>
-        </div>
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Documento</th>
-              <th>Tipo</th>
-              <th>Data</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="doc in documents" :key="doc.id">
-              <td>
-                <div style="font-weight: 500; color: var(--text-h)">{{ doc.name }}</div>
-                <div class="mono" style="color: var(--text-m)">{{ doc.id }}</div>
-              </td>
-              <td><span class="badge gray">{{ doc.type }}</span></td>
-              <td style="color: var(--text-m)">{{ doc.date }}</td>
-              <td><span class="badge" :class="doc.statusClass">{{ doc.status }}</span></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+          <v-col cols="12" md="3">
+            <v-text-field
+              v-model="filtros.orgaoPublico"
+              label="Órgão Público"
+              solo
+              flat
+              clearable
+              hide-details
+              class="filtro-input"
+            ></v-text-field>
+          </v-col>
+        </v-row>
 
-      <!-- Recent Alerts -->
-      <div class="panel">
-        <div class="panel-header">
-          <div>
-            <div class="panel-title">🔔 Alertas Recentes</div>
-            <div class="panel-subtitle">Últimas 48 horas</div>
-          </div>
-          <a class="see-all-link" @click="$emit('change-tab', 'alertas')">Ver todos</a>
+        <div class="filtros-actions">
+          <button class="filtrar-btn">
+            Filtrar
+          </button>
+          <button @click="limparFiltros" class="limpar-btn">
+            Limpar
+          </button>
         </div>
-        <div class="panel-body">
-          <div
-            v-for="alert in alerts.slice(0, 3)"
-            :key="alert.id"
-            class="alert-item"
-            :class="alert.type"
-          >
-            <div class="alert-icon">{{ alert.icon }}</div>
-            <div class="alert-content">
-              <div class="alert-title">{{ alert.title }}</div>
-              <div class="alert-body">{{ alert.body }}</div>
-              <div class="alert-time">{{ alert.time }}</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+      </v-col>
+    </v-row>
   </div>
 </template>
 
@@ -154,12 +96,128 @@ export default {
         { state: 'pending', icon: '6', label: 'Pagamento'   },
         { state: 'pending', icon: '7', label: 'Encerramento'},
       ],
+      filtros: {
+        numeroEdital: '',
+        dataInicio: '',
+        dataFim: '',
+        orgaoPublico: '',
+      },
     }
   },
+  methods: {
+    limparFiltros(){
+      this.filtros.numeroEdital = "";
+      this.filtros.dataInicio = "";
+      this.filtros.dataFim = "";
+      this.filtros.orgaoPublico = "";
+    }
+  }
+  
 }
 </script>
 
 <style scoped>
+
+.painel-filtros {
+  padding: 15px;
+}
+
+.kpi-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px 24px 24px !important;
+  box-shadow: var(--shadow);
+}
+
+.filtros-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-h, #1e293b);
+}
+
+.filtros-row {
+  margin: 0 -8px;
+}
+
+.filtros-row > .v-col {
+  padding: 0 8px;
+}
+
+/* Inputs */
+.filtro-input ::v-deep .v-input__slot {
+  border-radius: 8px !important;
+  border: 1px solid var(--border, #e2e8f0) !important;
+  box-shadow: none !important;
+  background: #f8fafc !important;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.filtro-input ::v-deep .v-input__slot:hover {
+  border-color: #94a3b8 !important;
+}
+
+.filtro-input.v-input--is-focused ::v-deep .v-input__slot {
+  border-color: #2563eb !important;
+  background: var(--white) !important;
+}
+
+.filtro-input ::v-deep .v-label,
+.filtro-input ::v-deep input {
+  font-size: 14px !important;
+}
+
+.filtro-input ::v-deep input {
+  color: #1e293b !important;
+}
+
+/* Ações */
+.filtros-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.filtrar-btn,
+.limpar-btn {
+  padding: 9px 18px;
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  border: none;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.05s ease;
+}
+
+.filtrar-btn {
+  background-color: #2563eb;
+  color: #fff;
+}
+
+.filtrar-btn:hover {
+  background-color: #1d4ed8;
+}
+
+.filtrar-btn:active {
+  transform: translateY(1px);
+}
+
+.filtrar-btn:focus-visible {
+  outline: 2px solid #93c5fd;
+  outline-offset: 2px;
+}
+
+.limpar-btn {
+  background-color: transparent;
+  color: #475569;
+  border: 1px solid var(--border, #e2e8f0);
+}
+
+.limpar-btn:hover {
+  background-color: #f1f5f9;
+}
+
 .contract-timeline-wrap {
   background: var(--white); border: 1px solid var(--border);
   border-radius: 10px; padding: 18px; box-shadow: var(--shadow); margin-bottom: 22px;
