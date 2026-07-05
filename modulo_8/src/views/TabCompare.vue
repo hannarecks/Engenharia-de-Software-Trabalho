@@ -3,191 +3,468 @@
     <div class="page-header">
       <div>
         <div class="page-title">Comparação de Documentos</div>
-        <div class="page-subtitle">Coteje edital, proposta e contrato assinado para identificar variações</div>
-      </div>
-      <div class="flex-row">
-        <button class="btn-secondary">📥 Importar documento</button>
-        <button class="btn-primary" @click="$emit('change-tab', 'divergencias')">🔍 Ver Divergências</button>
+        <div class="page-subtitle">
+          Coteje edital, proposta e contrato assinado para identificar variações
+        </div>
       </div>
     </div>
 
-    <!-- Selector -->
+    <!-- Seletor / Upload -->
     <div class="panel" style="margin-bottom: 16px">
       <div class="panel-header">
         <div class="panel-title">Seleção de documentos para comparação</div>
       </div>
       <div class="panel-body">
         <div class="selector-row">
-          <div style="flex: 1; min-width: 180px">
+  
+          <!-- Edital -->
+          <div style="flex: 1; min-width: 220px">
             <div class="form-label">Documento Base (Edital)</div>
-            <select class="form-input">
-              <option>EDITAL-PMSP-0047-2024.pdf</option>
-              <option>EDITAL-PMSP-0047-2024-REV1.pdf</option>
-            </select>
+
+            <div v-if="editalDoc" class="doc-loaded">
+              📄 {{ editalDoc.file_name }}
+              <span class="doc-loaded-tag">carregado do processo</span>
+            </div>
+
+            <v-file-input
+              v-else
+              v-model="editalFile"
+              accept=".pdf,.doc,.docx"
+              outlined
+              dense
+              prepend-icon="mdi-file-upload"
+              label="Selecionar edital"
+              show-size
+              hide-details="auto"
+              class="small-file-input"
+              @change="onFileSelected($event, 'edital_minuta')"
+            />
           </div>
+
           <div class="swap-icon">⇄</div>
-          <div style="flex: 1; min-width: 180px">
+
+          <!-- Contrato -->
+          <div style="flex: 1; min-width: 220px">
             <div class="form-label">Documento Comparado (Contrato)</div>
-            <select class="form-input">
-              <option>CONTRATO-CTR-2024-0047.pdf</option>
-              <option>PROPOSTA-TEC-2024.pdf</option>
-            </select>
+
+            <div v-if="contratoDoc" class="doc-loaded">
+              📄 {{ contratoDoc.file_name }}
+              <button class="link-btn" @click="resetContrato">trocar</button>
+            </div>
+
+            <v-file-input
+              v-else
+              v-model="contratoFile"
+              accept=".pdf,.doc,.docx"
+              outlined
+              dense
+              prepend-icon="mdi-file-upload"
+              label="Selecionar contrato"
+              show-size
+              hide-details="auto"
+              class="small-file-input"
+              @change="onFileSelected($event, 'contrato')"
+            />
           </div>
+
           <div style="margin-top: 18px">
-            <button class="btn-primary">⚖️ Comparar Agora</button>
+            <button
+              class="btn-primary"
+              :disabled="!podeComparar || comparando"
+              @click="compararDocumentos"
+            >
+              {{ comparando ? "⏳ Comparando..." : "⚖️ Comparar Agora" }}
+            </button>
           </div>
         </div>
-        <div class="summary-row">
-          <span>🟡 <strong>3 divergências</strong> encontradas nesta comparação</span>
-          <span>🔴 2 de alta severidade</span>
-          <span>🟡 1 de média severidade</span>
+
+        <div v-if="erro" class="error-banner">⚠️ {{ erro }}</div>
+
+        <div v-if="ultimaComparacao?.summary" class="summary-row">
+          <span
+            >🟡
+            <strong>{{ ultimaComparacao.summary.total }} divergências</strong>
+            encontradas nesta comparação</span
+          >
+          <span v-if="ultimaComparacao.summary.alta"
+            >🔴 {{ ultimaComparacao.summary.alta }} de alta severidade</span
+          >
+          <span v-if="ultimaComparacao.summary.media"
+            >🟡 {{ ultimaComparacao.summary.media }} de média severidade</span
+          >
         </div>
       </div>
     </div>
 
-    <!-- Side by side diff -->
-    <div class="comparison-grid">
-      <!-- Edital -->
-      <div class="comparison-doc">
-        <div class="comparison-doc-header">
-          <span class="doc-type-badge">EDITAL</span>
-          EDITAL-PMSP-0047-2024.pdf
-          <span class="doc-section">Cláusula 12 – Preços</span>
-        </div>
-        <div
-          v-for="line in editalLines"
-          :key="line.num"
-          class="doc-line"
-          :class="line.cls"
-        >
-          <span class="line-num">{{ line.num }}</span>
-          <div v-if="line.marker" class="diff-marker" :class="line.markerCls">{{ line.markerIcon }}</div>
-          <span class="line-text" v-html="line.text"></span>
-        </div>
-      </div>
+    <!-- Estado vazio -->
+    <div v-if="!ultimaComparacao && !comparando" class="empty-state">
+      Envie os dois documentos e clique em "Comparar Agora" para ver o
+      resultado.
+    </div>
 
-      <!-- Contrato -->
-      <div class="comparison-doc">
-        <div class="comparison-doc-header">
-          <span class="doc-type-badge" style="background: var(--emerald)">CONTRATO</span>
-          CONTRATO-CTR-2024-0047.pdf
-          <span class="doc-section">Cláusula 12 – Preços</span>
+    <!-- Loading -->
+    <div v-if="comparando" class="empty-state">
+      Extraindo e comparando os documentos, isso pode levar alguns segundos...
+    </div>
+
+    <!-- Divergências -->
+    <div v-if="ultimaComparacao?.divergences?.length" class="divergences-list">
+      <div
+        v-for="(div, idx) in ultimaComparacao.divergences"
+        :key="idx"
+        class="divergence-card"
+        :class="'sev-' + div.severidade"
+      >
+        <div class="divergence-header">
+          <span class="divergence-clausula">{{ div.clausula }}</span>
+          <span class="severity-badge" :class="'sev-' + div.severidade">
+            {{
+              div.severidade === "alta"
+                ? "🔴 alta"
+                : div.severidade === "media"
+                ? "🟡 média"
+                : "⚪ baixa"
+            }}
+          </span>
         </div>
-        <div
-          v-for="line in contratoLines"
-          :key="line.num"
-          class="doc-line"
-          :class="line.cls"
-        >
-          <span class="line-num">{{ line.num }}</span>
-          <div v-if="line.marker" class="diff-marker" :class="line.markerCls">{{ line.markerIcon }}</div>
-          <span class="line-text" v-html="line.text"></span>
+        <div class="divergence-columns">
+          <div class="divergence-col">
+            <div class="doc-section">EDITAL</div>
+            <div class="line-text">{{ div.trecho_edital }}</div>
+          </div>
+          <div class="divergence-col">
+            <div class="doc-section">CONTRATO</div>
+            <div class="line-text">{{ div.trecho_contrato }}</div>
+          </div>
         </div>
+        <div class="divergence-desc">{{ div.descricao }}</div>
       </div>
     </div>
 
-    <!-- Legend -->
-    <div class="legend-row">
-      <span class="legend-item">
-        <span class="legend-swatch divergent"></span> Divergência de valor/data
-      </span>
-      <span class="legend-item">
-        <span class="legend-swatch removed"></span> Cláusula removida
-      </span>
+    <div
+      v-else-if="ultimaComparacao && !ultimaComparacao.divergences?.length"
+      class="empty-state"
+    >
+      ✅ Nenhuma divergência relevante encontrada entre os documentos.
     </div>
   </div>
 </template>
 
 <script>
+// import { supabase } from '@/lib/supabaseClient'
+import { extractText, ExtractionError } from "@/utils/documentExtractor";
+
 export default {
-  name: 'TabCompare',
+  name: "TabCompare",
+  props: {
+    processoId: { type: String, required: true },
+  },
   data() {
     return {
-      editalLines: [
-        { num: 45, cls: '',              marker: false, text: 'O valor unitário de cada equipamento não poderá' },
-        { num: 46, cls: '',              marker: false, text: 'exceder o praticado no mercado, conforme pesquisa' },
-        { num: 47, cls: 'divergent',     marker: true,  markerCls: 'warn',    markerIcon: '!', text: 'de preços realizada em <strong>outubro de 2024</strong>, limitada' },
-        { num: 48, cls: 'divergent',     marker: true,  markerCls: 'warn',    markerIcon: '!', text: 'a R$ <strong>12.500,00</strong> (doze mil e quinhentos reais) por unidade.' },
-        { num: 49, cls: '',              marker: false, text: 'O reajuste anual seguirá o índice IPCA acumulado' },
-        { num: 50, cls: '',              marker: false, text: 'do período de vigência contratual.' },
-        { num: 51, cls: 'divergent-left',marker: true,  markerCls: 'removed', markerIcon: '✕', text: 'Multa por atraso: <strong>2%</strong> ao mês sobre o valor da parcela.' },
-      ],
-      contratoLines: [
-        { num: 45, cls: '',          marker: false, text: 'O valor unitário de cada equipamento não poderá' },
-        { num: 46, cls: '',          marker: false, text: 'exceder o praticado no mercado, conforme pesquisa' },
-        { num: 47, cls: 'divergent', marker: true,  markerCls: 'warn', markerIcon: '!', text: 'de preços realizada em <strong>setembro de 2024</strong>, limitada' },
-        { num: 48, cls: 'divergent', marker: true,  markerCls: 'warn', markerIcon: '!', text: 'a R$ <strong>13.200,00</strong> (treze mil e duzentos reais) por unidade.' },
-        { num: 49, cls: '',          marker: false, text: 'O reajuste anual seguirá o índice IPCA acumulado' },
-        { num: 50, cls: '',          marker: false, text: 'do período de vigência contratual.' },
-        { num: '—', cls: 'suppressed', marker: false, text: '<em style="color:var(--text-m)">[ linha suprimida no contrato ]</em>' },
-      ],
-    }
+      editalDoc: null,
+      contratoDoc: null,
+      comparando: false,
+      erro: null,
+      ultimaComparacao: null,
+    };
   },
-}
+  computed: {
+    podeComparar() {
+      return !!this.editalDoc && !!this.contratoDoc;
+    },
+  },
+  async mounted() {
+    await this.carregarEditalExistente();
+  },
+  methods: {
+    async carregarEditalExistente() {
+      const { data, error } = await supabase
+        .from("contract_documents")
+        .select("*")
+        .eq("processo_id", this.processoId)
+        .eq("doc_type", "edital_minuta")
+        .eq("extraction_status", "success")
+        .order("uploaded_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!error && data) {
+        this.editalDoc = data;
+      }
+    },
+
+    resetContrato() {
+      this.contratoDoc = null;
+      this.ultimaComparacao = null;
+      this.erro = null;
+    },
+
+    async onFileSelected(event, docType) {
+      const file = event.target.files[0];
+      this.erro = null;
+      if (!file) return;
+
+      try {
+        const texto = await extractText(file);
+        const doc = await this.salvarDocumento(file, docType, texto);
+
+        if (docType === "edital_minuta") {
+          this.editalDoc = doc;
+        } else {
+          this.contratoDoc = doc;
+        }
+      } catch (err) {
+        this.erro =
+          err instanceof ExtractionError
+            ? err.message
+            : "Erro inesperado ao processar o arquivo.";
+        event.target.value = "";
+      }
+    },
+
+    async salvarDocumento(file, docType, extractedText) {
+      const path = `${this.processoId}/${docType}/${Date.now()}-${file.name}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("contract-documents")
+        .upload(path, file);
+
+      if (uploadError) {
+        throw new Error("Falha ao enviar arquivo para o storage.");
+      }
+
+      const { data, error } = await supabase
+        .from("contract_documents")
+        .insert({
+          processo_id: this.processoId,
+          doc_type: docType,
+          file_name: file.name,
+          storage_path: path,
+          mime_type: file.type,
+          file_size_bytes: file.size,
+          extracted_text: extractedText,
+          extraction_status: "success",
+        })
+        .select()
+        .single();
+
+      if (error) {
+        throw new Error("Falha ao registrar documento no banco.");
+      }
+
+      return data;
+    },
+
+    async compararDocumentos() {
+      this.erro = null;
+
+      if (!this.editalDoc) {
+        this.erro = "Envie a minuta do edital antes de comparar.";
+        return;
+      }
+      if (!this.contratoDoc) {
+        this.erro = "Envie o contrato antes de comparar.";
+        return;
+      }
+
+      this.comparando = true;
+      this.ultimaComparacao = null;
+
+      try {
+        const { data: comparisonRow, error: insertError } = await supabase
+          .from("document_comparisons")
+          .insert({
+            processo_id: this.processoId,
+            edital_document_id: this.editalDoc.id,
+            contrato_document_id: this.contratoDoc.id,
+            status: "pending",
+          })
+          .select()
+          .single();
+
+        if (insertError) {
+          throw new Error("Falha ao criar registro de comparação.");
+        }
+
+        const { data, error: fnError } = await supabase.functions.invoke(
+          "compare-documents",
+          { body: { comparison_id: comparisonRow.id } },
+        );
+
+        if (fnError) {
+          throw new Error("Falha ao processar comparação via IA.");
+        }
+
+        this.ultimaComparacao = data;
+      } catch (err) {
+        this.erro = err.message || "Erro inesperado ao comparar documentos.";
+      } finally {
+        this.comparando = false;
+      }
+    },
+  },
+};
 </script>
 
 <style scoped>
+
+.small-file-input {
+  max-width: 260px;
+}
+
+.small-file-input .v-input__slot {
+  min-height: 38px !important;
+}
+
+.small-file-input .v-label {
+  font-size: 13px;
+}
+
+.small-file-input ::v-deep input {
+  margin-left: 5px;
+}
+
+.small-file-input input {
+  font-size: 13px;
+}
+
+.small-file-input .v-icon {
+  font-size: 18px !important;
+}
+
 .selector-row {
-  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
 }
-.swap-icon { font-size: 20px; color: var(--text-m); margin-top: 18px; }
+.swap-icon {
+  font-size: 20px;
+  color: var(--text-m);
+  margin-top: 32px;
+}
 .summary-row {
-  margin-top: 12px; display: flex; gap: 16px;
-  font-size: 12px; color: var(--text-m);
+  margin-top: 12px;
+  display: flex;
+  gap: 16px;
+  font-size: 12px;
+  color: var(--text-m);
 }
 
-.comparison-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.doc-loaded {
+  font-size: 13px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--ice);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.doc-loaded-tag {
+  font-size: 10.5px;
+  color: var(--text-m);
+}
+.link-btn {
+  background: none;
+  border: none;
+  color: var(--blue-acc);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 0;
+}
+.field-hint {
+  font-size: 11.5px;
+  color: var(--text-m);
+  margin-top: 4px;
+}
 
-.comparison-doc { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
-.comparison-doc-header {
-  padding: 10px 14px; background: var(--ice);
-  border-bottom: 1px solid var(--border);
-  display: flex; align-items: center; gap: 8px;
-  font-size: 12.5px; font-weight: 600; color: var(--text-h);
+.error-banner {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: #fff1f2;
+  color: #9f1239;
+  font-size: 13px;
 }
-.doc-type-badge {
-  font-size: 10px; font-weight: 700;
-  background: var(--navy); color: #fff;
-  padding: 2px 7px; border-radius: 4px; letter-spacing: 0.05em;
-}
-.doc-section { margin-left: auto; font-size: 11px; color: var(--text-m); }
 
-.doc-line {
-  display: flex; align-items: flex-start; gap: 10px;
-  padding: 8px 14px; border-bottom: 1px solid var(--ice);
-  font-size: 12.5px; line-height: 1.5;
+.empty-state {
+  padding: 32px;
+  text-align: center;
+  color: var(--text-m);
+  font-size: 13.5px;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
 }
-.doc-line:last-child { border-bottom: none; }
-.doc-line.divergent      { background: #FFF7ED; }
-.doc-line.divergent-left { background: #FFF1F2; }
-.doc-line.suppressed     { background: var(--ice); }
 
-.line-num {
-  font-family: 'JetBrains Mono', monospace; font-size: 10.5px;
-  color: var(--text-m); min-width: 24px; margin-top: 1px; user-select: none;
+.divergences-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
-.line-text { color: var(--text-b); }
-.divergent      .line-text { color: #92400E; }
-.divergent-left .line-text { color: #9F1239; }
+.divergence-card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
+}
+.divergence-card.sev-alta {
+  border-left: 4px solid var(--red);
+}
+.divergence-card.sev-media {
+  border-left: 4px solid var(--amber);
+}
+.divergence-card.sev-baixa {
+  border-left: 4px solid var(--border);
+}
 
-.diff-marker {
-  width: 16px; height: 16px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 10px; font-weight: 700; flex-shrink: 0; margin-top: 1px;
+.divergence-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
 }
-.diff-marker.warn    { background: #FED7AA; color: var(--amber); }
-.diff-marker.removed { background: #FECDD3; color: var(--red); }
+.divergence-clausula {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-h);
+}
+.severity-badge {
+  font-size: 11px;
+  font-weight: 600;
+}
 
-.legend-row {
-  margin-top: 14px; display: flex; gap: 16px;
-  font-size: 12.5px; align-items: center; color: var(--text-m);
+.divergence-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 8px;
 }
-.legend-item { display: flex; align-items: center; gap: 5px; }
-.legend-swatch { width: 14px; height: 14px; border-radius: 3px; display: inline-block; }
-.legend-swatch.divergent { background: #FFF7ED; border: 1px solid #FED7AA; }
-.legend-swatch.removed   { background: #FFF1F2; border: 1px solid #FECDD3; }
+.divergence-col {
+  background: var(--ice);
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+.doc-section {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--text-m);
+  margin-bottom: 4px;
+}
+.line-text {
+  font-size: 12.5px;
+  color: var(--text-b);
+}
+
+.divergence-desc {
+  font-size: 12px;
+  color: var(--text-m);
+  font-style: italic;
+}
 
 @media (max-width: 900px) {
-  .comparison-grid { grid-template-columns: 1fr; }
+  .divergence-columns {
+    grid-template-columns: 1fr;
+  }
 }
 </style>
