@@ -5,7 +5,7 @@
         <div class="page-title">Tarefas</div>
         <div class="page-subtitle">Pendências e ações de acompanhamento do contrato</div>
       </div>
-      <button class="btn-primary" @click="showModal = true">+ Nova Tarefa</button>
+      <button class="btn-primary" @click="openCreateModal">+ Nova Tarefa</button>
     </div>
 
     <div class="panel">
@@ -37,14 +37,20 @@
               </span>
             </div>
           </div>
+          <div class="task-actions">
+            <button class="icon-btn" title="Editar" @click="openEditModal(task)">✏️</button>
+            <button class="icon-btn" title="Excluir" @click="deleteTask(task.id)">🗑️</button>
+          </div>
         </div>
       </div>
     </div>
 
     <NewTaskModal
       v-if="showModal"
-      @close="showModal = false"
+      :task="editingTask"
+      @close="closeModal"
       @add-task="handleAddTask"
+      @save-task="handleSaveTask"
     />
   </div>
 </template>
@@ -60,6 +66,7 @@ export default {
     return {
       tasks: initialTasks,
       showModal: false,
+      editingTask: null,
     }
   },
   computed: {
@@ -68,9 +75,33 @@ export default {
     },
   },
   methods: {
+    openCreateModal() {
+      this.editingTask = null
+      this.showModal = true
+    },
+    openEditModal(task) {
+      this.editingTask = task
+      this.showModal = true
+    },
+    closeModal() {
+      this.showModal = false
+      this.editingTask = null
+    },
     handleAddTask(newTask) {
       this.tasks.push(newTask)
-      this.showModal = false
+      this.closeModal()
+    },
+    handleSaveTask(updatedTask) {
+      const index = this.tasks.findIndex(t => t.id === updatedTask.id)
+      if (index !== -1) {
+        this.tasks.splice(index, 1, updatedTask)
+      }
+      this.closeModal()
+    },
+    deleteTask(id) {
+      if (confirm('Tem certeza que deseja excluir esta tarefa?')) {
+        this.tasks = this.tasks.filter(t => t.id !== id)
+      }
     },
     priorityLabel(priority) {
       const labels = { high: 'Alta', medium: 'Média', low: 'Baixa' }
@@ -147,5 +178,24 @@ export default {
 .task-due.overdue {
   color: var(--red, #ef4444);
   font-weight: 600;
+}
+.task-actions {
+  display: flex;
+  gap: 4px;
+  margin-top: 2px;
+}
+.icon-btn {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  opacity: 0.7;
+  transition: opacity 0.15s, background 0.15s;
+}
+.icon-btn:hover {
+  opacity: 1;
+  background: var(--ice-mid, #eee);
 }
 </style>
