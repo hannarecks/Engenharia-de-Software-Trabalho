@@ -5,7 +5,7 @@ import TabCompare from '../views/TabCompare.vue'
 import TabDivergencias from '@/views/TabDivergencias.vue'
 import TabPagamentos from '@/views/TabPagamentos.vue'
 import TabAlertas from '@/views/TabAlertas.vue'
-
+import TabTarefas from '@/views/TabTarefas.vue'
 
 Vue.use(VueRouter)
 
@@ -34,7 +34,12 @@ const routes = [
     path: "/alertas",
     name: "alertas",
     component: TabAlertas
-  }
+  },
+  {
+  path: "/tarefas",
+  name: "tarefas",
+  component: TabTarefas
+}
 ]
 
 const router = new VueRouter({
