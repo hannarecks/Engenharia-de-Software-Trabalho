@@ -1,9 +1,10 @@
-
 import * as pdfjsLib from 'pdfjs-dist'
 import mammoth from 'mammoth'
 
-pdfjsLib.GlobalWorkerOptions.workerSrc =
-  new URL('pdfjs-dist/build/pdf.worker.mjs', import.meta.url).toString()
+pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.mjs',
+  import.meta.url
+).toString()
 
 export class ExtractionError extends Error {
   constructor(message, cause) {

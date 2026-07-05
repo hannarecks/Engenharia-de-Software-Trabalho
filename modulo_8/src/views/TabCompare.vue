@@ -16,29 +16,29 @@
       </div>
       <div class="panel-body">
         <div class="selector-row">
-  
           <!-- Edital -->
           <div style="flex: 1; min-width: 220px">
             <div class="form-label">Documento Base (Edital)</div>
-
             <div v-if="editalDoc" class="doc-loaded">
               📄 {{ editalDoc.file_name }}
               <span class="doc-loaded-tag">carregado do processo</span>
             </div>
-
-            <v-file-input
-              v-else
-              v-model="editalFile"
-              accept=".pdf,.doc,.docx"
-              outlined
-              dense
-              prepend-icon="mdi-file-upload"
-              label="Selecionar edital"
-              show-size
-              hide-details="auto"
-              class="small-file-input"
-              @change="onFileSelected($event, 'edital_minuta')"
-            />
+            <div v-else>
+              <v-file-input
+                label="Selecionar edital"
+                accept=".pdf,.docx"
+                solo
+                dense
+                hide-details
+                prepend-icon=""
+                append-icon="mdi-paperclip"
+                :loading="carregandoEdital"
+                @change="onFileSelected($event, 'edital_minuta')"
+              ></v-file-input>
+              <div class="field-hint">
+                Edital não encontrado no processo — envie manualmente.
+              </div>
+            </div>
           </div>
 
           <div class="swap-icon">⇄</div>
@@ -46,25 +46,22 @@
           <!-- Contrato -->
           <div style="flex: 1; min-width: 220px">
             <div class="form-label">Documento Comparado (Contrato)</div>
-
             <div v-if="contratoDoc" class="doc-loaded">
               📄 {{ contratoDoc.file_name }}
               <button class="link-btn" @click="resetContrato">trocar</button>
             </div>
-
             <v-file-input
               v-else
-              v-model="contratoFile"
-              accept=".pdf,.doc,.docx"
-              outlined
-              dense
-              prepend-icon="mdi-file-upload"
               label="Selecionar contrato"
-              show-size
-              hide-details="auto"
-              class="small-file-input"
+              accept=".pdf,.docx"
+              solo
+              dense
+              hide-details
+              prepend-icon=""
+              append-icon="mdi-paperclip"
+              :loading="carregandoContrato"
               @change="onFileSelected($event, 'contrato')"
-            />
+            ></v-file-input>
           </div>
 
           <div style="margin-top: 18px">
@@ -151,130 +148,113 @@
 </template>
 
 <script>
-// import { supabase } from '@/lib/supabaseClient'
+import { supabase } from "@/services/supabase";
 import { extractText, ExtractionError } from "@/utils/documentExtractor";
 
 export default {
   name: "TabCompare",
-  props: {
-    processoId: { type: String, required: true },
-  },
   data() {
     return {
-      editalDoc: null,
-      contratoDoc: null,
+      editalDoc: null, // documento já salvo no banco (carregado ou após upload)
+      contratoDoc: null, // documento já salvo no banco
+      editalFile: null, // arquivo em memória aguardando upload
+      contratoFile: null, // arquivo em memória aguardando upload
       comparando: false,
+      carregandoEdital: false,
+      carregandoContrato: false,
       erro: null,
       ultimaComparacao: null,
     };
   },
   computed: {
     podeComparar() {
-      return !!this.editalDoc && !!this.contratoDoc;
+      // pode comparar se tiver o doc salvo OU o arquivo em memória, nos dois lados
+      return (
+        (!!this.editalDoc || !!this.editalFile) &&
+        (!!this.contratoDoc || !!this.contratoFile)
+      );
     },
   },
-  async mounted() {
-    await this.carregarEditalExistente();
-  },
+
   methods: {
-    async carregarEditalExistente() {
-      const { data, error } = await supabase
-        .from("contract_documents")
-        .select("*")
-        .eq("processo_id", this.processoId)
-        .eq("doc_type", "edital_minuta")
-        .eq("extraction_status", "success")
-        .order("uploaded_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (!error && data) {
-        this.editalDoc = data;
-      }
-    },
-
     resetContrato() {
       this.contratoDoc = null;
+      this.contratoFile = null;
       this.ultimaComparacao = null;
       this.erro = null;
     },
 
-    async onFileSelected(event, docType) {
-      const file = event.target.files[0];
+    // Agora só guarda o arquivo em memória, sem fazer nada ainda
+    onFileSelected(file, docType) {
       this.erro = null;
       if (!file) return;
 
-      try {
-        const texto = await extractText(file);
-        const doc = await this.salvarDocumento(file, docType, texto);
-
-        if (docType === "edital_minuta") {
-          this.editalDoc = doc;
-        } else {
-          this.contratoDoc = doc;
-        }
-      } catch (err) {
-        this.erro =
-          err instanceof ExtractionError
-            ? err.message
-            : "Erro inesperado ao processar o arquivo.";
-        event.target.value = "";
+      if (docType === "edital_minuta") {
+        this.editalFile = file;
+        this.editalDoc = null; // reseta o doc salvo se o usuário trocar o arquivo
+      } else {
+        this.contratoFile = file;
+        this.contratoDoc = null;
       }
     },
 
-    async salvarDocumento(file, docType, extractedText) {
-      const path = `${this.processoId}/${docType}/${Date.now()}-${file.name}`;
+    async salvarDocumento(file, docType, sessionId) {
+      const texto = await extractText(file);
+      const path = `${sessionId}/${docType}/${Date.now()}-${file.name}`;
 
       const { error: uploadError } = await supabase.storage
         .from("contract-documents")
         .upload(path, file);
 
-      if (uploadError) {
+      if (uploadError)
         throw new Error("Falha ao enviar arquivo para o storage.");
-      }
 
       const { data, error } = await supabase
-        .from("contract_documents")
+        .from("mod8_contract_documents")
         .insert({
-          processo_id: this.processoId,
           doc_type: docType,
           file_name: file.name,
           storage_path: path,
           mime_type: file.type,
           file_size_bytes: file.size,
-          extracted_text: extractedText,
+          extracted_text: texto,
           extraction_status: "success",
         })
         .select()
         .single();
 
-      if (error) {
-        throw new Error("Falha ao registrar documento no banco.");
-      }
-
+      if (error) throw new Error("Falha ao registrar documento no banco.");
       return data;
     },
 
     async compararDocumentos() {
       this.erro = null;
-
-      if (!this.editalDoc) {
-        this.erro = "Envie a minuta do edital antes de comparar.";
-        return;
-      }
-      if (!this.contratoDoc) {
-        this.erro = "Envie o contrato antes de comparar.";
-        return;
-      }
-
       this.comparando = true;
       this.ultimaComparacao = null;
 
+      const sessionId = crypto.randomUUID(); // mesmo ID para os dois docs dessa comparação
+
       try {
+        this.carregandoEdital = true;
+        this.editalDoc = await this.salvarDocumento(
+          this.editalFile,
+          "edital_minuta",
+          sessionId,
+        );
+        this.carregandoEdital = false;
+
+        this.carregandoContrato = true;
+        this.contratoDoc = await this.salvarDocumento(
+          this.contratoFile,
+          "contrato",
+          sessionId,
+        );
+        this.carregandoContrato = false;
+
         const { data: comparisonRow, error: insertError } = await supabase
-          .from("document_comparisons")
+          .from("mod8_document_comparisons")
           .insert({
-            processo_id: this.processoId,
+            session_id: sessionId,
             edital_document_id: this.editalDoc.id,
             contrato_document_id: this.contratoDoc.id,
             status: "pending",
@@ -282,22 +262,24 @@ export default {
           .select()
           .single();
 
-        if (insertError) {
+        if (insertError)
           throw new Error("Falha ao criar registro de comparação.");
-        }
 
         const { data, error: fnError } = await supabase.functions.invoke(
           "compare-documents",
           { body: { comparison_id: comparisonRow.id } },
         );
 
-        if (fnError) {
-          throw new Error("Falha ao processar comparação via IA.");
-        }
+        if (fnError) throw new Error("Falha ao processar comparação via IA.");
 
         this.ultimaComparacao = data;
       } catch (err) {
-        this.erro = err.message || "Erro inesperado ao comparar documentos.";
+        this.carregandoEdital = false;
+        this.carregandoContrato = false;
+        this.erro =
+          err instanceof ExtractionError
+            ? err.message
+            : err.message || "Erro inesperado ao comparar documentos.";
       } finally {
         this.comparando = false;
       }
@@ -307,31 +289,6 @@ export default {
 </script>
 
 <style scoped>
-
-.small-file-input {
-  max-width: 260px;
-}
-
-.small-file-input .v-input__slot {
-  min-height: 38px !important;
-}
-
-.small-file-input .v-label {
-  font-size: 13px;
-}
-
-.small-file-input ::v-deep input {
-  margin-left: 5px;
-}
-
-.small-file-input input {
-  font-size: 13px;
-}
-
-.small-file-input .v-icon {
-  font-size: 18px !important;
-}
-
 .selector-row {
   display: flex;
   align-items: flex-start;
