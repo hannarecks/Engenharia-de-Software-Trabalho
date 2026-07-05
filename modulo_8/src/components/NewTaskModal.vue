@@ -2,7 +2,7 @@
   <div class="modal-overlay" @click.self="$emit('close')">
     <div class="modal-box">
       <div class="modal-header">
-        <div class="modal-title">Nova Tarefa</div>
+        <div class="modal-title">{{ isEditing ? 'Editar Tarefa' : 'Nova Tarefa' }}</div>
         <button class="modal-close" @click="$emit('close')">✕</button>
       </div>
 
@@ -33,7 +33,9 @@
 
         <div class="modal-actions">
           <button type="button" class="btn-secondary" @click="$emit('close')">Cancelar</button>
-          <button type="submit" class="btn-primary">Criar Tarefa</button>
+          <button type="submit" class="btn-primary">
+            {{ isEditing ? 'Salvar Alterações' : 'Criar Tarefa' }}
+          </button>
         </div>
       </form>
     </div>
@@ -43,26 +45,43 @@
 <script>
 export default {
   name: 'NewTaskModal',
+  props: {
+    task: {
+      type: Object,
+      default: null,
+    },
+  },
   data() {
     return {
-      text: '',
-      priority: 'medium',
-      due: '',
+      text: this.task ? this.task.text : '',
+      priority: this.task ? this.task.priority : 'medium',
+      due: this.task ? this.task.due : '',
     }
+  },
+  computed: {
+    isEditing() {
+      return !!this.task
+    },
   },
   methods: {
     handleSubmit() {
-      this.$emit('add-task', {
-        id: Date.now(),
-        text: this.text,
-        priority: this.priority,
-        due: this.due,
-        overdue: false,
-        done: false,
-      })
-      this.text = ''
-      this.priority = 'medium'
-      this.due = ''
+      if (this.isEditing) {
+        this.$emit('save-task', {
+          ...this.task,
+          text: this.text,
+          priority: this.priority,
+          due: this.due,
+        })
+      } else {
+        this.$emit('add-task', {
+          id: Date.now(),
+          text: this.text,
+          priority: this.priority,
+          due: this.due,
+          overdue: false,
+          done: false,
+        })
+      }
     },
   },
 }
