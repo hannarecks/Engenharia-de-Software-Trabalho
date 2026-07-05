@@ -114,7 +114,7 @@
             <div class="panel-title">🔔 Alertas Recentes</div>
             <div class="panel-subtitle">Últimas 48 horas</div>
           </div>
-          <a class="see-all-link" @click="$emit('change-tab', 'alertas')">Ver todos</a>
+          <router-link class="see-all-link" :to="{ name: 'alertas' }">Ver todos</router-link>
         </div>
         <div class="panel-body">
           <div
