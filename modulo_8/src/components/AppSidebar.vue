@@ -38,6 +38,7 @@ export default {
         { icon: "mdi-alert", title: "Divergências", route: { name: "divergencias" } },
         { icon: "mdi-cash", title: "Pagamentos", route: { name: "pagamentos" } },
         { icon: "mdi-bell", title: "Alertas", route: { name: "alertas" } },
+        { icon: "mdi-checkbox-marked-outline", title: "Tarefas", route: { name: "tarefas" } },
       ],
     };
   },
