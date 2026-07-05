@@ -3,6 +3,8 @@ import VueRouter from 'vue-router'
 import HomeView from '../views/TabOverview.vue'
 import TabCompare from '../views/TabCompare.vue'
 import TabDivergencias from '@/views/TabDivergencias.vue'
+import TabPagamentos from '@/views/TabPagamentos.vue'
+
 
 
 Vue.use(VueRouter)
@@ -22,6 +24,11 @@ const routes = [
     path: "/divergencias",
     name: "divergencias",
     component: TabDivergencias
+  },
+  {
+    path: "/pagamentos",
+    name: "pagamentos",
+    component: TabPagamentos
   }
 ]
 
