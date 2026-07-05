@@ -6,9 +6,12 @@ import router from "./router";
 
 Vue.config.productionTip = false
 
-new Vue({
-  store,
-  router,
-  vuetify,
-  render: h => h(App)
-}).$mount('#app')
+// Espera o Supabase confirmar se já existe uma sessão salva antes de inicializar a aplicação
+store.dispatch('auth/init').then(() => {
+  new Vue({
+    store,
+    router,
+    vuetify,
+    render: h => h(App)
+  }).$mount('#app')
+})

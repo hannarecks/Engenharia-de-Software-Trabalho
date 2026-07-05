@@ -1,6 +1,6 @@
 <template>
   <div id="app-root">
-    <AppSidebar />
+    <AppSidebar v-if="$route.name !== 'login'" />
 
     <main class="main">
       <router-view />
