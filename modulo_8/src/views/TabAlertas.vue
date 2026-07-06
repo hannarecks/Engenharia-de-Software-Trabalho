@@ -77,6 +77,16 @@
 <script>
 import { alerts, alertConfig } from '@/data/mockData'
 
+// Liga cada alerta (por id) à configuração correspondente.
+// Alertas que não aparecem aqui não são afetados por nenhum toggle.
+const alertConfigMap = {
+  1: 1, // Pagamento vencido há 28 dias -> Pagamento vencido
+  2: 3, // Divergência crítica sem resolução -> Nova divergência
+  3: 2, // Vencimento de parcela em 7 dias -> Aviso pré-vencimento
+  6: 4, // Sincronização concluída -> Sincronização Portal
+  7: 5, // E-mail enviado ao órgão -> Notificar por e-mail
+}
+
 export default {
   name: 'TabAlertas',
   data() {
@@ -94,14 +104,21 @@ export default {
   },
   computed: {
     filteredAlerts() {
-      if (this.activeFilter === 'all') return this.alerts
-      return this.alerts.filter(a => a.type === this.activeFilter)
+      return this.alerts
+        .filter(a => this.activeFilter === 'all' || a.type === this.activeFilter)
+        .filter(a => this.isAlertEnabled(a))
     },
   },
   methods: {
+    isAlertEnabled(alert) {
+      const configId = alertConfigMap[alert.id]
+      if (!configId) return true // alerta sem vínculo: sempre visível
+      const cfg = this.config.find(c => c.id === configId)
+      return cfg ? cfg.active : true
+    },
     countByType(type) {
-      if (type === 'all') return this.alerts.length
-      return this.alerts.filter(a => a.type === type).length
+      const base = type === 'all' ? this.alerts : this.alerts.filter(a => a.type === type)
+      return base.filter(a => this.isAlertEnabled(a)).length
     },
     defaultIcon(type) {
       const icons = { critical: '⚠️', warning: '🔔', info: 'ℹ️' }
