@@ -75,45 +75,30 @@
     <v-row no-gutters style="margin-top: 20px">
       <v-col cols="12">
         <div class="kpi-card">
-          <div v-if="carregando" class="estado-vazio">
-            <v-progress-circular
-              indeterminate
-              color="#2563eb"
-              size="32"
-            ></v-progress-circular>
-            <span style="margin-top: 12px">Carregando editais...</span>
-          </div>
 
-          <div v-else-if="erro" class="estado-vazio erro">⚠️ {{ erro }}</div>
-
-          <div v-else-if="editais.length === 0" class="estado-vazio">
+          <div v-if="editaisFiltrados.length === 0" class="estado-vazio">
             <span class="estado-icone">📭</span>
-            <span class="estado-titulo">Nenhum edital ganho encontrado</span>
-            <span class="estado-sub"
-              >Quando sua empresa vencer uma licitação, ela aparecerá
-              aqui.</span
-            >
+            <span class="estado-titulo">Nenhum edital encontrado</span>
+            <span class="estado-sub">Tente ajustar os filtros para ver mais resultados.</span>
           </div>
 
           <v-data-table
             v-else
             :headers="headers"
-            :items="editais"
+            :items="editaisFiltrados"
             :items-per-page="10"
             class="editais-table"
           >
             <template #item.nome="{ item }">
-              <span class="nome-cell" :title="item.nome">{{
-                item.nome || "—"
-              }}</span>
+              <span class="nome-cell" :title="item.nome">{{ item.nome || '—' }}</span>
             </template>
 
             <template #item.modalidade="{ item }">
-              <span class="badge-modalidade">{{ item.modalidade || "—" }}</span>
+              <span class="badge-modalidade">{{ item.modalidade || '—' }}</span>
             </template>
 
             <template #item.cidade="{ item }">
-              <span>{{ item.cidade || "—" }}</span>
+              <span>{{ item.cidade || '—' }}</span>
             </template>
 
             <template #item.data_abertura="{ item }">
@@ -124,14 +109,8 @@
               <span>{{ formatarData(item.data_fechamento) }}</span>
             </template>
 
-            <template #item.pncp_id="{ item }">
-              <span class="pncp-cell" :title="item.pncp_id">{{
-                item.pncp_id || "—"
-              }}</span>
-            </template>
-
             <template #item.status="{ item }">
-              <span class="badge-ganho">✅ Ganho</span>
+              <span class="badge-ganho">Ganho</span>
             </template>
 
             <template #item.acoes="{ item }">
@@ -140,6 +119,7 @@
               </button>
             </template>
           </v-data-table>
+
         </div>
       </v-col>
     </v-row>
@@ -147,135 +127,160 @@
 </template>
 
 <script>
-import { supabase } from "@/services/supabase";
-
 export default {
-  name: "TabOverview",
+  name: 'TabOverview',
   data() {
     return {
-      editais: [],
-      carregando: false,
-      erro: null,
       filtros: {
-        nome: "",
-        modalidade: "",
-        cidade: "",
-        dataAberturaInicio: "",
-        dataAberturaFim: "",
+        nome: '',
+        modalidade: '',
+        cidade: '',
+        dataAberturaInicio: '',
+        dataAberturaFim: '',
       },
-      modalidadesDisponiveis: [],
+      filtrosAtivos: {
+        nome: '',
+        modalidade: '',
+        cidade: '',
+        dataAberturaInicio: '',
+        dataAberturaFim: '',
+      },
       headers: [
-        { text: "Nome do Edital", value: "nome", sortable: true },
-        { text: "Modalidade", value: "modalidade", sortable: true },
-        { text: "Cidade", value: "cidade", sortable: true },
-        { text: "Data de Abertura", value: "data_abertura", sortable: true },
-        { text: "Data Fechamento", value: "data_fechamento", sortable: true },
-        { text: "Status", value: "status", sortable: false },
-        { text: "Ações", value: "acoes", sortable: false },
+        { text: 'Nome do Edital',   value: 'nome',            sortable: true  },
+        { text: 'Modalidade',       value: 'modalidade',      sortable: true  },
+        { text: 'Cidade',           value: 'cidade',          sortable: true  },
+        { text: 'Data de Abertura', value: 'data_abertura',   sortable: true  },
+        { text: 'Data Fechamento',  value: 'data_fechamento', sortable: true  },
+        { text: 'Status',           value: 'status',          sortable: false },
+        { text: 'Ações',            value: 'acoes',           sortable: false },
       ],
-    };
+      editais: [
+        {
+          id: 1,
+          nome: 'Pregão Eletrônico nº 07/2026 — Limpeza e Manutenção de Áreas Verdes',
+          modalidade: 'Pregão Eletrônico',
+          cidade: 'São Paulo',
+          data_abertura: '2026-03-10T09:00:00',
+          data_fechamento: '2027-03-10T09:00:00',
+          status: 'GANHO',
+          descricao: 'Contratação de empresa para limpeza e manutenção de áreas verdes municipais.',
+          arquivo_path: null,
+        },
+        {
+          id: 2,
+          nome: 'Concorrência Pública nº 02/2026 — Fornecimento de Equipamentos de TI',
+          modalidade: 'Concorrência',
+          cidade: 'Campinas',
+          data_abertura: '2026-02-15T10:00:00',
+          data_fechamento: '2027-02-15T10:00:00',
+          status: 'GANHO',
+          descricao: 'Aquisição de computadores, notebooks e periféricos.',
+          arquivo_path: null,
+        },
+        {
+          id: 3,
+          nome: 'Pregão Eletrônico nº 12/2026 — Serviços de Segurança Patrimonial',
+          modalidade: 'Pregão Eletrônico',
+          cidade: 'Rio de Janeiro',
+          data_abertura: '2026-04-01T08:00:00',
+          data_fechamento: '2027-04-01T08:00:00',
+          status: 'GANHO',
+          descricao: 'Prestação de serviços de vigilância e segurança patrimonial.',
+          arquivo_path: null,
+        },
+        {
+          id: 4,
+          nome: 'Dispensa de Licitação nº 05/2026 — Manutenção Predial',
+          modalidade: 'Dispensa',
+          cidade: 'Belo Horizonte',
+          data_abertura: '2026-01-20T14:00:00',
+          data_fechamento: '2026-07-20T14:00:00',
+          status: 'GANHO',
+          descricao: 'Serviços de manutenção preventiva e corretiva das instalações.',
+          arquivo_path: null,
+        },
+        {
+          id: 5,
+          nome: 'Pregão Eletrônico nº 18/2026 — Material de Escritório',
+          modalidade: 'Pregão Eletrônico',
+          cidade: 'Curitiba',
+          data_abertura: '2026-05-05T09:30:00',
+          data_fechamento: '2027-05-05T09:30:00',
+          status: 'GANHO',
+          descricao: 'Fornecimento de materiais de expediente e escritório.',
+          arquivo_path: null,
+        },
+        {
+          id: 6,
+          nome: 'Concorrência Pública nº 04/2026 — Obra de Pavimentação',
+          modalidade: 'Concorrência',
+          cidade: 'São Paulo',
+          data_abertura: '2026-03-25T10:00:00',
+          data_fechamento: '2028-03-25T10:00:00',
+          status: 'GANHO',
+          descricao: 'Execução de obras de pavimentação asfáltica em vias urbanas.',
+          arquivo_path: null,
+        },
+      ],
+    }
   },
-  async mounted() {
-    await this.carregarEditais();
+  computed: {
+    modalidadesDisponiveis() {
+      return [...new Set(this.editais.map(e => e.modalidade).filter(Boolean))].sort()
+    },
+    editaisFiltrados() {
+      return this.editais.filter(e => {
+        if (this.filtrosAtivos.nome &&
+          !e.nome.toLowerCase().includes(this.filtrosAtivos.nome.toLowerCase()))
+          return false
+
+        if (this.filtrosAtivos.modalidade && e.modalidade !== this.filtrosAtivos.modalidade)
+          return false
+
+        if (this.filtrosAtivos.cidade &&
+          !e.cidade.toLowerCase().includes(this.filtrosAtivos.cidade.toLowerCase()))
+          return false
+
+        if (this.filtrosAtivos.dataAberturaInicio) {
+          if (new Date(e.data_abertura) < new Date(this.filtrosAtivos.dataAberturaInicio))
+            return false
+        }
+
+        if (this.filtrosAtivos.dataAberturaFim) {
+          if (new Date(e.data_abertura) > new Date(this.filtrosAtivos.dataAberturaFim))
+            return false
+        }
+
+        return true
+      })
+    },
   },
   methods: {
-    async carregarEditais() {
-      this.carregando = true;
-      this.erro = null;
-
-      let query = supabase
-        .from("mod1_editais")
-        .select(
-          `
-      id,
-      nome,
-      modalidade,
-      cidade,
-      data_abertura,
-      data_fechamento,
-      status,
-      descricao,
-      arquivo_path
-    `,
-        )
-        .eq("status", "GANHO");
-
-      // Nome
-      if (this.filtros.nome) {
-        query = query.ilike("nome", `%${this.filtros.nome}%`);
-      }
-
-      // Modalidade
-      if (this.filtros.modalidade) {
-        query = query.eq("modalidade", this.filtros.modalidade);
-      }
-
-      // Cidade
-      if (this.filtros.cidade) {
-        query = query.ilike("cidade", `%${this.filtros.cidade}%`);
-      }
-
-      // Data inicial
-      if (this.filtros.dataAberturaInicio) {
-        query = query.gte("data_abertura", this.filtros.dataAberturaInicio);
-      }
-
-      // Data final
-      if (this.filtros.dataAberturaFim) {
-        query = query.lte("data_abertura", this.filtros.dataAberturaFim);
-      }
-
-      query = query.order("data_abertura", {
-        ascending: false,
-      });
-
-      const { data, error } = await query;
-
-      if (error) {
-        console.error(error);
-        this.erro = "Erro ao carregar editais.";
-      } else {
-        this.editais = data || [];
-      }
-
-      this.carregando = false;
+    aplicarFiltros() {
+      this.filtrosAtivos = { ...this.filtros }
     },
-    async aplicarFiltros() {
-      await this.carregarEditais();
-    },
-    async carregarModalidades() {
-      const { data } = await supabase
-        .from("mod1_editais")
-        .select("modalidade")
-        .eq("status", "ganho");
 
-      this.modalidadesDisponiveis = [
-        ...new Set((data || []).map((e) => e.modalidade).filter(Boolean)),
-      ].sort();
-    },
-    async limparFiltros() {
+    limparFiltros() {
       this.filtros = {
-        nome: "",
-        modalidade: "",
-        cidade: "",
-        dataAberturaInicio: "",
-        dataAberturaFim: "",
-      };
+        nome: '',
+        modalidade: '',
+        cidade: '',
+        dataAberturaInicio: '',
+        dataAberturaFim: '',
+      }
+      this.filtrosAtivos = { ...this.filtros }
+    },
 
-      await this.carregarEditais();
-    },
     formatarData(data) {
-      if (!data) return "—";
-      return new Date(data).toLocaleDateString("pt-BR");
+      if (!data) return '—'
+      return new Date(data).toLocaleDateString('pt-BR')
     },
+
     abrirContrato(edital) {
-      this.$emit("abrir-contrato", edital);
+      this.$emit('abrir-contrato', edital)
     },
   },
-  async mounted() {
-    await Promise.all([this.carregarModalidades(), this.carregarEditais()]);
-  },
-};
+}
 </script>
 
 <style scoped>
@@ -355,21 +360,10 @@ export default {
   transition: background-color 0.2s ease;
 }
 
-.filtrar-btn {
-  background-color: #2563eb;
-  color: #fff;
-}
-.filtrar-btn:hover {
-  background-color: #1d4ed8;
-}
-.limpar-btn {
-  background: transparent;
-  color: #475569;
-  border: 1px solid var(--border, #e2e8f0);
-}
-.limpar-btn:hover {
-  background: #f1f5f9;
-}
+.filtrar-btn { background-color: #2563eb; color: #fff; }
+.filtrar-btn:hover { background-color: #1d4ed8; }
+.limpar-btn { background: transparent; color: #475569; border: 1px solid var(--border, #e2e8f0); }
+.limpar-btn:hover { background: #f1f5f9; }
 
 .estado-vazio {
   display: flex;
@@ -380,21 +374,9 @@ export default {
   gap: 8px;
   color: var(--text-m, #64748b);
 }
-.estado-vazio.erro {
-  color: #9f1239;
-}
-.estado-icone {
-  font-size: 36px;
-}
-.estado-titulo {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text-h);
-}
-.estado-sub {
-  font-size: 13px;
-  color: var(--text-m);
-}
+.estado-icone { font-size: 36px; }
+.estado-titulo { font-size: 15px; font-weight: 600; color: var(--text-h); }
+.estado-sub { font-size: 13px; color: var(--text-m); }
 
 .editais-table ::v-deep th {
   font-size: 12px !important;
@@ -411,9 +393,7 @@ export default {
   border-bottom: 1px solid var(--border) !important;
 }
 
-.editais-table ::v-deep tr:hover td {
-  background: #f8fafc;
-}
+.editais-table ::v-deep tr:hover td { background: #f8fafc; }
 
 .nome-cell {
   display: -webkit-box;
@@ -421,14 +401,6 @@ export default {
   -webkit-box-orient: vertical;
   overflow: hidden;
   max-width: 260px;
-}
-
-.pncp-cell {
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 160px;
 }
 
 .badge-modalidade {
@@ -460,7 +432,5 @@ export default {
   cursor: pointer;
   transition: background 0.15s;
 }
-.btn-ver:hover {
-  background: #eff6ff;
-}
+.btn-ver:hover { background: #eff6ff; }
 </style>
