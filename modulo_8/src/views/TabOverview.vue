@@ -9,69 +9,137 @@
       </div>
     </div>
 
+    <!-- Painel de Filtros -->
     <v-row no-gutters>
       <v-col class="kpi-card" cols="12">
         <h3 class="filtros-title">Filtros</h3>
 
-        <v-row class="filtros-row">
-          <v-col cols="12" md="3">
-            <v-text-field
-              v-model="filtros.numeroEdital"
-              label="Número do Edital"
-              solo
-              flat
-              clearable
-              hide-details
+        <div class="filtros-grid">
+          <div class="filtro-wrap">
+            <label class="filtro-label">Nome do Edital</label>
+            <input
+              v-model="filtros.nome"
+              type="text"
+              placeholder="Buscar por nome..."
               class="filtro-input"
-            ></v-text-field>
-          </v-col>
+            />
+          </div>
 
-          <v-col cols="12" md="3">
-            <v-text-field
-              v-model="filtros.dataInicio"
-              label="Data de Início"
+          <div class="filtro-wrap">
+            <label class="filtro-label">Modalidade</label>
+            <select v-model="filtros.modalidade" class="filtro-input">
+              <option value="">Todas</option>
+              <option v-for="m in modalidadesDisponiveis" :key="m" :value="m">
+                {{ m }}
+              </option>
+            </select>
+          </div>
+
+          <div class="filtro-wrap">
+            <label class="filtro-label">Cidade</label>
+            <input
+              v-model="filtros.cidade"
+              type="text"
+              placeholder="Buscar por cidade..."
+              class="filtro-input"
+            />
+          </div>
+
+          <div class="filtro-wrap">
+            <label class="filtro-label">Abertura — De</label>
+            <input
+              v-model="filtros.dataAberturaInicio"
               type="date"
-              solo
-              flat
-              clearable
-              hide-details
               class="filtro-input"
-            ></v-text-field>
-          </v-col>
+            />
+          </div>
 
-          <v-col cols="12" md="3">
-            <v-text-field
-              v-model="filtros.dataFim"
-              label="Data de Fim"
+          <div class="filtro-wrap">
+            <label class="filtro-label">Abertura — Até</label>
+            <input
+              v-model="filtros.dataAberturaFim"
               type="date"
-              solo
-              flat
-              clearable
-              hide-details
               class="filtro-input"
-            ></v-text-field>
-          </v-col>
-
-          <v-col cols="12" md="3">
-            <v-text-field
-              v-model="filtros.orgaoPublico"
-              label="Órgão Público"
-              solo
-              flat
-              clearable
-              hide-details
-              class="filtro-input"
-            ></v-text-field>
-          </v-col>
-        </v-row>
+            />
+          </div>
+        </div>
 
         <div class="filtros-actions">
-          <button class="filtrar-btn">
-            Filtrar
-          </button>
-          <button @click="limparFiltros" class="limpar-btn">
-            Limpar
-          </button>
+          <button class="filtrar-btn" @click="aplicarFiltros">Filtrar</button>
+          <button class="limpar-btn" @click="limparFiltros">Limpar</button>
+        </div>
+      </v-col>
+    </v-row>
+
+    <!-- Tabela -->
+    <v-row no-gutters style="margin-top: 20px">
+      <v-col cols="12">
+        <div class="kpi-card">
+          <div v-if="carregando" class="estado-vazio">
+            <v-progress-circular
+              indeterminate
+              color="#2563eb"
+              size="32"
+            ></v-progress-circular>
+            <span style="margin-top: 12px">Carregando editais...</span>
+          </div>
+
+          <div v-else-if="erro" class="estado-vazio erro">⚠️ {{ erro }}</div>
+
+          <div v-else-if="editais.length === 0" class="estado-vazio">
+            <span class="estado-icone">📭</span>
+            <span class="estado-titulo">Nenhum edital ganho encontrado</span>
+            <span class="estado-sub"
+              >Quando sua empresa vencer uma licitação, ela aparecerá
+              aqui.</span
+            >
+          </div>
+
+          <v-data-table
+            v-else
+            :headers="headers"
+            :items="editais"
+            :items-per-page="10"
+            class="editais-table"
+          >
+            <template #item.nome="{ item }">
+              <span class="nome-cell" :title="item.nome">{{
+                item.nome || "—"
+              }}</span>
+            </template>
+
+            <template #item.modalidade="{ item }">
+              <span class="badge-modalidade">{{ item.modalidade || "—" }}</span>
+            </template>
+
+            <template #item.cidade="{ item }">
+              <span>{{ item.cidade || "—" }}</span>
+            </template>
+
+            <template #item.data_abertura="{ item }">
+              <span>{{ formatarData(item.data_abertura) }}</span>
+            </template>
+
+            <template #item.data_fechamento="{ item }">
+              <span>{{ formatarData(item.data_fechamento) }}</span>
+            </template>
+
+            <template #item.pncp_id="{ item }">
+              <span class="pncp-cell" :title="item.pncp_id">{{
+                item.pncp_id || "—"
+              }}</span>
+            </template>
+
+            <template #item.status="{ item }">
+              <span class="badge-ganho">✅ Ganho</span>
+            </template>
+
+            <template #item.acoes="{ item }">
+              <button class="btn-ver" @click="abrirContrato(item)">
+                Ver contrato
+              </button>
+            </template>
+          </v-data-table>
         </div>
       </v-col>
     </v-row>
@@ -79,49 +147,138 @@
 </template>
 
 <script>
-import { documents, alerts } from '@/data/mockData'
+import { supabase } from "@/services/supabase";
 
 export default {
-  name: 'TabOverview',
+  name: "TabOverview",
   data() {
     return {
-      documents,
-      alerts,
-      steps: [
-        { state: 'done',    icon: '✓', label: 'Adjudicação' },
-        { state: 'done',    icon: '✓', label: 'Homologação' },
-        { state: 'done',    icon: '✓', label: 'Assinatura'  },
-        { state: 'active',  icon: '▶', label: 'Execução'    },
-        { state: 'pending', icon: '5', label: 'Medição'     },
-        { state: 'pending', icon: '6', label: 'Pagamento'   },
-        { state: 'pending', icon: '7', label: 'Encerramento'},
-      ],
+      editais: [],
+      carregando: false,
+      erro: null,
       filtros: {
-        numeroEdital: '',
-        dataInicio: '',
-        dataFim: '',
-        orgaoPublico: '',
+        nome: "",
+        modalidade: "",
+        cidade: "",
+        dataAberturaInicio: "",
+        dataAberturaFim: "",
       },
-    }
+      modalidadesDisponiveis: [],
+      headers: [
+        { text: "Nome do Edital", value: "nome", sortable: true },
+        { text: "Modalidade", value: "modalidade", sortable: true },
+        { text: "Cidade", value: "cidade", sortable: true },
+        { text: "Data de Abertura", value: "data_abertura", sortable: true },
+        { text: "Data Fechamento", value: "data_fechamento", sortable: true },
+        { text: "Status", value: "status", sortable: false },
+        { text: "Ações", value: "acoes", sortable: false },
+      ],
+    };
+  },
+  async mounted() {
+    await this.carregarEditais();
   },
   methods: {
-    limparFiltros(){
-      this.filtros.numeroEdital = "";
-      this.filtros.dataInicio = "";
-      this.filtros.dataFim = "";
-      this.filtros.orgaoPublico = "";
-    }
-  }
-  
-}
+    async carregarEditais() {
+      this.carregando = true;
+      this.erro = null;
+
+      let query = supabase
+        .from("mod1_editais")
+        .select(
+          `
+      id,
+      nome,
+      modalidade,
+      cidade,
+      data_abertura,
+      data_fechamento,
+      status,
+      descricao,
+      arquivo_path
+    `,
+        )
+        .eq("status", "GANHO");
+
+      // Nome
+      if (this.filtros.nome) {
+        query = query.ilike("nome", `%${this.filtros.nome}%`);
+      }
+
+      // Modalidade
+      if (this.filtros.modalidade) {
+        query = query.eq("modalidade", this.filtros.modalidade);
+      }
+
+      // Cidade
+      if (this.filtros.cidade) {
+        query = query.ilike("cidade", `%${this.filtros.cidade}%`);
+      }
+
+      // Data inicial
+      if (this.filtros.dataAberturaInicio) {
+        query = query.gte("data_abertura", this.filtros.dataAberturaInicio);
+      }
+
+      // Data final
+      if (this.filtros.dataAberturaFim) {
+        query = query.lte("data_abertura", this.filtros.dataAberturaFim);
+      }
+
+      query = query.order("data_abertura", {
+        ascending: false,
+      });
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error(error);
+        this.erro = "Erro ao carregar editais.";
+      } else {
+        this.editais = data || [];
+      }
+
+      this.carregando = false;
+    },
+    async aplicarFiltros() {
+      await this.carregarEditais();
+    },
+    async carregarModalidades() {
+      const { data } = await supabase
+        .from("mod1_editais")
+        .select("modalidade")
+        .eq("status", "ganho");
+
+      this.modalidadesDisponiveis = [
+        ...new Set((data || []).map((e) => e.modalidade).filter(Boolean)),
+      ].sort();
+    },
+    async limparFiltros() {
+      this.filtros = {
+        nome: "",
+        modalidade: "",
+        cidade: "",
+        dataAberturaInicio: "",
+        dataAberturaFim: "",
+      };
+
+      await this.carregarEditais();
+    },
+    formatarData(data) {
+      if (!data) return "—";
+      return new Date(data).toLocaleDateString("pt-BR");
+    },
+    abrirContrato(edital) {
+      this.$emit("abrir-contrato", edital);
+    },
+  },
+  async mounted() {
+    await Promise.all([this.carregarModalidades(), this.carregarEditais()]);
+  },
+};
 </script>
 
 <style scoped>
-
-.painel-filtros {
-  padding: 15px;
-}
-
 .kpi-card {
   background: var(--white);
   border: 1px solid var(--border);
@@ -134,44 +291,53 @@ export default {
   font-size: 20px;
   font-weight: 700;
   color: var(--text-h, #1e293b);
+  margin-bottom: 16px;
 }
 
-.filtros-row {
-  margin: 0 -8px;
+.filtros-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+  margin-bottom: 4px;
 }
 
-.filtros-row > .v-col {
-  padding: 0 8px;
+.filtro-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
 }
 
-/* Inputs */
-.filtro-input ::v-deep .v-input__slot {
-  border-radius: 8px !important;
-  border: 1px solid var(--border, #e2e8f0) !important;
-  box-shadow: none !important;
-  background: #f8fafc !important;
-  transition: border-color 0.2s ease, background-color 0.2s ease;
+.filtro-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-m, #64748b);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
-.filtro-input ::v-deep .v-input__slot:hover {
-  border-color: #94a3b8 !important;
+.filtro-input {
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border, #e2e8f0);
+  background: #f8fafc;
+  font-size: 13.5px;
+  color: #1e293b;
+  outline: none;
+  transition: border-color 0.2s;
+  appearance: auto;
+  box-sizing: border-box;
 }
 
-.filtro-input.v-input--is-focused ::v-deep .v-input__slot {
-  border-color: #2563eb !important;
-  background: var(--white) !important;
+.filtro-input:focus {
+  border-color: #2563eb;
+  background: #fff;
 }
 
-.filtro-input ::v-deep .v-label,
-.filtro-input ::v-deep input {
-  font-size: 14px !important;
+.filtro-input::placeholder {
+  color: #94a3b8;
 }
 
-.filtro-input ::v-deep input {
-  color: #1e293b !important;
-}
-
-/* Ações */
 .filtros-actions {
   display: flex;
   gap: 10px;
@@ -184,78 +350,117 @@ export default {
   border-radius: 8px;
   font-size: 13.5px;
   font-weight: 600;
-  letter-spacing: 0.3px;
   cursor: pointer;
   border: none;
-  transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.05s ease;
+  transition: background-color 0.2s ease;
 }
 
 .filtrar-btn {
   background-color: #2563eb;
   color: #fff;
 }
-
 .filtrar-btn:hover {
   background-color: #1d4ed8;
 }
-
-.filtrar-btn:active {
-  transform: translateY(1px);
-}
-
-.filtrar-btn:focus-visible {
-  outline: 2px solid #93c5fd;
-  outline-offset: 2px;
-}
-
 .limpar-btn {
-  background-color: transparent;
+  background: transparent;
   color: #475569;
   border: 1px solid var(--border, #e2e8f0);
 }
-
 .limpar-btn:hover {
-  background-color: #f1f5f9;
+  background: #f1f5f9;
 }
 
-.contract-timeline-wrap {
-  background: var(--white); border: 1px solid var(--border);
-  border-radius: 10px; padding: 18px; box-shadow: var(--shadow); margin-bottom: 22px;
+.estado-vazio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  gap: 8px;
+  color: var(--text-m, #64748b);
 }
-.ct-header { margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; }
-.ct-title { font-size: 13px; font-weight: 600; color: var(--text-h); }
-.ct-phase { font-size: 12px; color: var(--text-m); margin-top: 2px; }
+.estado-vazio.erro {
+  color: #9f1239;
+}
+.estado-icone {
+  font-size: 36px;
+}
+.estado-titulo {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-h);
+}
+.estado-sub {
+  font-size: 13px;
+  color: var(--text-m);
+}
 
-.ct-steps { display: flex; align-items: center; }
-.ct-step {
-  display: flex; flex-direction: column; align-items: center;
-  position: relative; flex: 1;
+.editais-table ::v-deep th {
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  color: var(--text-m) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: #f8fafc !important;
 }
-.ct-step:not(:last-child)::after {
-  content: ''; position: absolute; top: 14px; left: 50%; width: 100%;
-  height: 2px; z-index: 0; background: var(--ice-mid);
-}
-.ct-step.done:not(:last-child)::after   { background: var(--emerald); }
-.ct-step.active:not(:last-child)::after { background: linear-gradient(to right, var(--emerald), var(--ice-mid)); }
 
-.ct-circle {
-  width: 28px; height: 28px; border-radius: 50%;
-  border: 2px solid var(--ice-mid); background: var(--white);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 12px; z-index: 1; position: relative; transition: all 0.2s;
+.editais-table ::v-deep td {
+  font-size: 13.5px;
+  color: var(--text-b);
+  border-bottom: 1px solid var(--border) !important;
 }
-.ct-step.done   .ct-circle { border-color: var(--emerald); background: var(--emerald); color: #fff; }
-.ct-step.active .ct-circle { border-color: var(--navy); background: var(--navy); color: #fff; box-shadow: 0 0 0 4px rgba(27,44,78,0.12); }
-.ct-step.pending .ct-circle { border-color: var(--border); color: var(--text-m); }
 
-.ct-label { font-size: 11px; color: var(--text-m); margin-top: 6px; text-align: center; font-weight: 500; white-space: nowrap; }
-.ct-step.active .ct-label  { color: var(--navy); font-weight: 700; }
-.ct-step.done   .ct-label  { color: var(--emerald); font-weight: 600; }
-
-.progress-labels {
-  display: flex; justify-content: space-between;
-  font-size: 11.5px; color: var(--text-m); margin-bottom: 4px;
+.editais-table ::v-deep tr:hover td {
+  background: #f8fafc;
 }
-.progress-value { font-weight: 600; color: var(--text-b); }
-.see-all-link { font-size: 12.5px; color: var(--blue-acc); cursor: pointer; font-weight: 500; }
+
+.nome-cell {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  max-width: 260px;
+}
+
+.pncp-cell {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 160px;
+}
+
+.badge-modalidade {
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.badge-ganho {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: #dcfce7;
+  color: #166534;
+}
+
+.btn-ver {
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 7px;
+  border: 1px solid #2563eb;
+  color: #2563eb;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-ver:hover {
+  background: #eff6ff;
+}
 </style>
