@@ -3,9 +3,10 @@
     <div class="page-header">
       <div>
         <div class="page-title">Gestão de Contratos</div>
-        <div class="page-subtitle">
-          Todos os editais vencidos, organizados para uma consulta rápida.
+        <div class="page-subtitle" v-if="contratoAtual">
+          {{ contratoAtual.objeto }} · {{ contratoAtual.contratante }} · Vigência: {{ contratoAtual.vigenciaInicio }} – {{ contratoAtual.vigenciaFim }}
         </div>
+        <div class="page-subtitle" v-else>Nenhum contrato cadastrado ainda.</div>
       </div>
     </div>
 

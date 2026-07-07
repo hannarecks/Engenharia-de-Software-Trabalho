@@ -42,7 +42,22 @@ function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
-// Busca por CNPJ do fornecedor (fluxo principal — CT-16)
+export async function sincronizar() {
+  await delay(900)
+
+  if (simularIndisponibilidade) {
+    throw new Error('Não foi possível acessar o Portal da Transparência. Tente novamente mais tarde.')
+  }
+
+  return registrosMock[0].registros.map((reg, index) => ({
+    id: index + 1,
+    title: `${reg.tipo} - ${reg.numero}`,
+    date: reg.data,
+    value: reg.valor,
+  }))
+}
+
+// Busca por CNPJ (fluxo principal — CT-16)
 export async function buscarPorCnpj(cnpj) {
   await delay(700)
 

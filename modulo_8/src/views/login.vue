@@ -7,7 +7,7 @@
       <input v-model="email" type="email" class="modal-input" placeholder="E-mail" />
       <input v-model="password" type="password" class="modal-input" placeholder="Senha" />
 
-      <div v-if="erro" class="alert-item critica" style="margin: 8px 0">{{ erro }}</div>
+      <div v-if="erro" class="alert-item critical" style="margin: 8px 0">{{ erro }}</div>
 
       <button class="btn-primary" style="width: 100%" @click="enviar">
         {{ modoCadastro ? 'Criar conta' : 'Entrar' }}
