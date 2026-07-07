@@ -6,6 +6,12 @@ import router from "./router";
 
 Vue.config.productionTip = false
 
+if (typeof document.hasAttribute !== 'function') {
+  document.hasAttribute = function () {
+    return false
+  }
+}
+
 // Espera o Supabase confirmar se já existe uma sessão salva antes de inicializar a aplicação
 store.dispatch('auth/init').then(() => {
   new Vue({

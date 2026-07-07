@@ -4,200 +4,537 @@
       <div>
         <div class="page-title">Gestão de Contratos</div>
         <div class="page-subtitle">
-          CTR-2024-0047 · Fornecimento de Equipamentos de TI · PMSP · Vigência: 12/2024 – 11/2025
+          Todos os editais vencidos, organizados para uma consulta rápida.
         </div>
       </div>
     </div>
 
-    <!-- KPIs -->
-    <div class="kpi-grid">
-      <div class="kpi-card">
-        <div class="kpi-label">Valor Total do Contrato</div>
-        <div class="kpi-value">R$&nbsp;1,24M</div>
-        <div class="kpi-sub">Vigência: 12 meses</div>
-        <div class="kpi-accent-bar blue"></div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-label">Valor Pago</div>
-        <div class="kpi-value">R$&nbsp;517K</div>
-        <div class="kpi-sub"><span class="kpi-change up">↑ 41,7%</span> do total</div>
-        <div class="kpi-accent-bar green"></div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-label">Pagamentos Pendentes</div>
-        <div class="kpi-value">R$&nbsp;208K</div>
-        <div class="kpi-sub"><span class="kpi-change warn">⚠ 1 em atraso</span></div>
-        <div class="kpi-accent-bar amber"></div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-label">Divergências Abertas</div>
-        <div class="kpi-value">5</div>
-        <div class="kpi-sub"><span class="kpi-change down">● 2 de alta prioridade</span></div>
-        <div class="kpi-accent-bar red"></div>
-      </div>
-    </div>
+    <!-- Painel de Filtros -->
+    <v-row no-gutters>
+      <v-col class="kpi-card" cols="12">
+        <h3 class="filtros-title">Filtros</h3>
 
-    <!-- Contract Timeline -->
-    <div class="contract-timeline-wrap">
-      <div class="ct-header">
-        <div>
-          <div class="ct-title">Ciclo de Vida do Contrato</div>
-          <div class="ct-phase">Fase atual: <strong>Execução e Entregas</strong></div>
-        </div>
-        <div class="badge green">
-          <div class="badge-dot-sm" style="background: var(--emerald)"></div>
-          Em execução
-        </div>
-      </div>
-
-      <div class="ct-steps">
-        <div
-          v-for="step in steps"
-          :key="step.label"
-          class="ct-step"
-          :class="step.state"
-        >
-          <div class="ct-circle">{{ step.icon }}</div>
-          <div class="ct-label">{{ step.label }}</div>
-        </div>
-      </div>
-
-      <div style="margin-top: 14px">
-        <div class="progress-labels">
-          <span>Progresso financeiro</span>
-          <span class="progress-value">41,7% executado</span>
-        </div>
-        <div class="progress-bar-wrap">
-          <div class="progress-bar-fill" style="width: 41.7%; background: var(--emerald)"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Two Columns -->
-    <div class="two-col">
-      <!-- Documents -->
-      <div class="panel">
-        <div class="panel-header">
-          <div>
-            <div class="panel-title">📁 Documentos Vinculados</div>
-            <div class="panel-subtitle">Artefatos do processo licitatório</div>
+        <div class="filtros-grid">
+          <div class="filtro-wrap">
+            <label class="filtro-label">Nome do Edital</label>
+            <input
+              v-model="filtros.nome"
+              type="text"
+              placeholder="Buscar por nome..."
+              class="filtro-input"
+            />
           </div>
-          <button class="btn-secondary" style="font-size: 12px; padding: 5px 10px">+ Anexar</button>
-        </div>
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Documento</th>
-              <th>Tipo</th>
-              <th>Data</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="doc in documents" :key="doc.id">
-              <td>
-                <div style="font-weight: 500; color: var(--text-h)">{{ doc.name }}</div>
-                <div class="mono" style="color: var(--text-m)">{{ doc.id }}</div>
-              </td>
-              <td><span class="badge gray">{{ doc.type }}</span></td>
-              <td style="color: var(--text-m)">{{ doc.date }}</td>
-              <td><span class="badge" :class="doc.statusClass">{{ doc.status }}</span></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
 
-      <!-- Recent Alerts -->
-      <div class="panel">
-        <div class="panel-header">
-          <div>
-            <div class="panel-title">🔔 Alertas Recentes</div>
-            <div class="panel-subtitle">Últimas 48 horas</div>
+          <div class="filtro-wrap">
+            <label class="filtro-label">Modalidade</label>
+            <select v-model="filtros.modalidade" class="filtro-input">
+              <option value="">Todas</option>
+              <option v-for="m in modalidadesDisponiveis" :key="m" :value="m">
+                {{ m }}
+              </option>
+            </select>
           </div>
-          <router-link class="see-all-link" :to="{ name: 'alertas' }">Ver todos</router-link>
+
+          <div class="filtro-wrap">
+            <label class="filtro-label">Cidade</label>
+            <input
+              v-model="filtros.cidade"
+              type="text"
+              placeholder="Buscar por cidade..."
+              class="filtro-input"
+            />
+          </div>
+
+          <div class="filtro-wrap">
+            <label class="filtro-label">Abertura — De</label>
+            <input
+              v-model="filtros.dataAberturaInicio"
+              type="date"
+              class="filtro-input"
+            />
+          </div>
+
+          <div class="filtro-wrap">
+            <label class="filtro-label">Abertura — Até</label>
+            <input
+              v-model="filtros.dataAberturaFim"
+              type="date"
+              class="filtro-input"
+            />
+          </div>
         </div>
-        <div class="panel-body">
-          <div
-            v-for="alert in alerts.slice(0, 3)"
-            :key="alert.id"
-            class="alert-item"
-            :class="alert.type"
+
+        <div class="filtros-actions">
+          <button class="filtrar-btn" @click="aplicarFiltros">Filtrar</button>
+          <button class="limpar-btn" @click="limparFiltros">Limpar</button>
+        </div>
+      </v-col>
+    </v-row>
+
+    <!-- Tabela -->
+    <v-row no-gutters style="margin-top: 20px">
+      <v-col cols="12">
+        <div class="kpi-card">
+          <div v-if="editaisFiltrados.length === 0" class="estado-vazio">
+            <span class="estado-icone">📭</span>
+            <span class="estado-titulo">Nenhum edital encontrado</span>
+            <span class="estado-sub"
+              >Tente ajustar os filtros para ver mais resultados.</span
+            >
+          </div>
+
+          <v-data-table
+            v-else
+            :headers="headers"
+            :items="editaisFiltrados"
+            :items-per-page="10"
+            class="editais-table"
           >
-            <div class="alert-icon">{{ alert.icon }}</div>
-            <div class="alert-content">
-              <div class="alert-title">{{ alert.title }}</div>
-              <div class="alert-body">{{ alert.body }}</div>
-              <div class="alert-time">{{ alert.time }}</div>
-            </div>
-          </div>
+            <template #item.nome="{ item }">
+              <span class="nome-cell" :title="item.nome">{{
+                item.nome || "—"
+              }}</span>
+            </template>
+
+            <template #item.modalidade="{ item }">
+              <span class="badge-modalidade">{{ item.modalidade || "—" }}</span>
+            </template>
+
+            <template #item.cidade="{ item }">
+              <span>{{ item.cidade || "—" }}</span>
+            </template>
+
+            <template #item.data_abertura="{ item }">
+              <span>{{ formatarData(item.data_abertura) }}</span>
+            </template>
+
+            <template #item.data_fechamento="{ item }">
+              <span>{{ formatarData(item.data_fechamento) }}</span>
+            </template>
+
+            <template #item.status="{ item }">
+              <span class="badge-ganho">Ganho</span>
+            </template>
+
+            <template #item.acoes="{ item }">
+              <button class="btn-ver" @click="abrirContrato(item)">
+                Ver contrato
+              </button>
+            </template>
+          </v-data-table>
         </div>
-      </div>
-    </div>
+      </v-col>
+    </v-row>
+    <!-- Modal de detalhes do contrato -->
+    <ContratoModal
+      v-model="modalAberto"
+      :edital="editalSelecionado"
+      @participar="onParticipar"
+    />
+
+    <v-snackbar
+      v-model="snackbar.aberto"
+      :color="snackbar.cor"
+      :timeout="4000"
+      bottom
+    >
+      {{ snackbar.texto }}
+      <template #action="{ attrs }">
+        <v-btn text v-bind="attrs" @click="snackbar.aberto = false">
+          Fechar
+        </v-btn>
+      </template>
+    </v-snackbar>
   </div>
 </template>
 
 <script>
-import { documents, alerts } from '@/data/mockData'
+import ContratoModal from "@/components/ContratoModal.vue";
+import CadastroContratoModal from "@/components/CadastroContratoModal.vue";
 
 export default {
-  name: 'TabOverview',
+  name: "TabOverview",
+  components: {
+    ContratoModal,
+    CadastroContratoModal,
+  },
   data() {
     return {
-      documents,
-      alerts,
-      steps: [
-        { state: 'done',    icon: '✓', label: 'Adjudicação' },
-        { state: 'done',    icon: '✓', label: 'Homologação' },
-        { state: 'done',    icon: '✓', label: 'Assinatura'  },
-        { state: 'active',  icon: '▶', label: 'Execução'    },
-        { state: 'pending', icon: '5', label: 'Medição'     },
-        { state: 'pending', icon: '6', label: 'Pagamento'   },
-        { state: 'pending', icon: '7', label: 'Encerramento'},
+      modalAberto: false,
+      cadastroAberto: false,
+      editalSelecionado: null,
+      snackbar: {
+        aberto: false,
+        texto: "",
+        cor: "success",
+      },
+      filtros: {
+        nome: "",
+        modalidade: "",
+        cidade: "",
+        dataAberturaInicio: "",
+        dataAberturaFim: "",
+      },
+      filtrosAtivos: {
+        nome: "",
+        modalidade: "",
+        cidade: "",
+        dataAberturaInicio: "",
+        dataAberturaFim: "",
+      },
+      headers: [
+        { text: "Nome do Edital", value: "nome", sortable: true },
+        { text: "Modalidade", value: "modalidade", sortable: true },
+        { text: "Cidade", value: "cidade", sortable: true },
+        { text: "Data de Abertura", value: "data_abertura", sortable: true },
+        { text: "Data Fechamento", value: "data_fechamento", sortable: true },
+        { text: "Status", value: "status", sortable: false },
+        { text: "Ações", value: "acoes", sortable: false },
       ],
-    }
+      editais: [
+        {
+          id: 1,
+          nome: "Pregão Eletrônico nº 07/2026 — Limpeza e Manutenção de Áreas Verdes",
+          modalidade: "Pregão Eletrônico",
+          cidade: "São Paulo",
+          data_abertura: "2026-03-10T09:00:00",
+          data_fechamento: "2027-03-10T09:00:00",
+          status: "GANHO",
+          descricao:
+            "Contratação de empresa para limpeza e manutenção de áreas verdes municipais.",
+          arquivo_path: null,
+        },
+        {
+          id: 2,
+          nome: "Concorrência Pública nº 02/2026 — Fornecimento de Equipamentos de TI",
+          modalidade: "Concorrência",
+          cidade: "Campinas",
+          data_abertura: "2026-02-15T10:00:00",
+          data_fechamento: "2027-02-15T10:00:00",
+          status: "GANHO",
+          descricao: "Aquisição de computadores, notebooks e periféricos.",
+          arquivo_path: null,
+        },
+        {
+          id: 3,
+          nome: "Pregão Eletrônico nº 12/2026 — Serviços de Segurança Patrimonial",
+          modalidade: "Pregão Eletrônico",
+          cidade: "Rio de Janeiro",
+          data_abertura: "2026-04-01T08:00:00",
+          data_fechamento: "2027-04-01T08:00:00",
+          status: "GANHO",
+          descricao:
+            "Prestação de serviços de vigilância e segurança patrimonial.",
+          arquivo_path: null,
+        },
+        {
+          id: 4,
+          nome: "Dispensa de Licitação nº 05/2026 — Manutenção Predial",
+          modalidade: "Dispensa",
+          cidade: "Belo Horizonte",
+          data_abertura: "2026-01-20T14:00:00",
+          data_fechamento: "2026-07-20T14:00:00",
+          status: "GANHO",
+          descricao:
+            "Serviços de manutenção preventiva e corretiva das instalações.",
+          arquivo_path: null,
+        },
+        {
+          id: 5,
+          nome: "Pregão Eletrônico nº 18/2026 — Material de Escritório",
+          modalidade: "Pregão Eletrônico",
+          cidade: "Curitiba",
+          data_abertura: "2026-05-05T09:30:00",
+          data_fechamento: "2027-05-05T09:30:00",
+          status: "GANHO",
+          descricao: "Fornecimento de materiais de expediente e escritório.",
+          arquivo_path: null,
+        },
+        {
+          id: 6,
+          nome: "Concorrência Pública nº 04/2026 — Obra de Pavimentação",
+          modalidade: "Concorrência",
+          cidade: "São Paulo",
+          data_abertura: "2026-03-25T10:00:00",
+          data_fechamento: "2028-03-25T10:00:00",
+          status: "GANHO",
+          descricao:
+            "Execução de obras de pavimentação asfáltica em vias urbanas.",
+          arquivo_path: null,
+        },
+      ],
+    };
   },
-}
+  computed: {
+    modalidadesDisponiveis() {
+      return [
+        ...new Set(this.editais.map((e) => e.modalidade).filter(Boolean)),
+      ].sort();
+    },
+    editaisFiltrados() {
+      return this.editais.filter((e) => {
+        if (
+          this.filtrosAtivos.nome &&
+          !e.nome.toLowerCase().includes(this.filtrosAtivos.nome.toLowerCase())
+        )
+          return false;
+
+        if (
+          this.filtrosAtivos.modalidade &&
+          e.modalidade !== this.filtrosAtivos.modalidade
+        )
+          return false;
+
+        if (
+          this.filtrosAtivos.cidade &&
+          !e.cidade
+            .toLowerCase()
+            .includes(this.filtrosAtivos.cidade.toLowerCase())
+        )
+          return false;
+
+        if (this.filtrosAtivos.dataAberturaInicio) {
+          if (
+            new Date(e.data_abertura) <
+            new Date(this.filtrosAtivos.dataAberturaInicio)
+          )
+            return false;
+        }
+
+        if (this.filtrosAtivos.dataAberturaFim) {
+          if (
+            new Date(e.data_abertura) >
+            new Date(this.filtrosAtivos.dataAberturaFim)
+          )
+            return false;
+        }
+
+        return true;
+      });
+    },
+  },
+  methods: {
+    aplicarFiltros() {
+      this.filtrosAtivos = { ...this.filtros };
+    },
+
+    limparFiltros() {
+      this.filtros = {
+        nome: "",
+        modalidade: "",
+        cidade: "",
+        dataAberturaInicio: "",
+        dataAberturaFim: "",
+      };
+      this.filtrosAtivos = { ...this.filtros };
+    },
+
+    formatarData(data) {
+      if (!data) return "—";
+      return new Date(data).toLocaleDateString("pt-BR");
+    },
+
+    abrirContrato(edital) {
+      this.editalSelecionado = edital;
+      this.modalAberto = true;
+    },
+
+    onParticipar(edital) {
+      this.editalSelecionado = edital;
+      this.cadastroAberto = true;
+    },
+
+    onCadastroSucesso() {
+      this.snackbar = {
+        aberto: true,
+        texto: "Contrato cadastrado com sucesso!",
+        cor: "success",
+      };
+    },
+
+    onCadastroErro(mensagem) {
+      this.snackbar = {
+        aberto: true,
+        texto: mensagem || "Erro ao cadastrar o contrato. Tente novamente.",
+        cor: "error",
+      };
+    },
+  },
+};
 </script>
 
 <style scoped>
-.contract-timeline-wrap {
-  background: var(--white); border: 1px solid var(--border);
-  border-radius: 10px; padding: 18px; box-shadow: var(--shadow); margin-bottom: 22px;
+.kpi-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px 24px 24px !important;
+  box-shadow: var(--shadow);
 }
-.ct-header { margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; }
-.ct-title { font-size: 13px; font-weight: 600; color: var(--text-h); }
-.ct-phase { font-size: 12px; color: var(--text-m); margin-top: 2px; }
 
-.ct-steps { display: flex; align-items: center; }
-.ct-step {
-  display: flex; flex-direction: column; align-items: center;
-  position: relative; flex: 1;
+.filtros-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-h, #1e293b);
+  margin-bottom: 16px;
 }
-.ct-step:not(:last-child)::after {
-  content: ''; position: absolute; top: 14px; left: 50%; width: 100%;
-  height: 2px; z-index: 0; background: var(--ice-mid);
-}
-.ct-step.done:not(:last-child)::after   { background: var(--emerald); }
-.ct-step.active:not(:last-child)::after { background: linear-gradient(to right, var(--emerald), var(--ice-mid)); }
 
-.ct-circle {
-  width: 28px; height: 28px; border-radius: 50%;
-  border: 2px solid var(--ice-mid); background: var(--white);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 12px; z-index: 1; position: relative; transition: all 0.2s;
+.filtros-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+  margin-bottom: 4px;
 }
-.ct-step.done   .ct-circle { border-color: var(--emerald); background: var(--emerald); color: #fff; }
-.ct-step.active .ct-circle { border-color: var(--navy); background: var(--navy); color: #fff; box-shadow: 0 0 0 4px rgba(27,44,78,0.12); }
-.ct-step.pending .ct-circle { border-color: var(--border); color: var(--text-m); }
 
-.ct-label { font-size: 11px; color: var(--text-m); margin-top: 6px; text-align: center; font-weight: 500; white-space: nowrap; }
-.ct-step.active .ct-label  { color: var(--navy); font-weight: 700; }
-.ct-step.done   .ct-label  { color: var(--emerald); font-weight: 600; }
-
-.progress-labels {
-  display: flex; justify-content: space-between;
-  font-size: 11.5px; color: var(--text-m); margin-bottom: 4px;
+.filtro-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
 }
-.progress-value { font-weight: 600; color: var(--text-b); }
-.see-all-link { font-size: 12.5px; color: var(--blue-acc); cursor: pointer; font-weight: 500; }
+
+.filtro-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-m, #64748b);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.filtro-input {
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border, #e2e8f0);
+  background: #f8fafc;
+  font-size: 13.5px;
+  color: #1e293b;
+  outline: none;
+  transition: border-color 0.2s;
+  appearance: auto;
+  box-sizing: border-box;
+}
+
+.filtro-input:focus {
+  border-color: #2563eb;
+  background: #fff;
+}
+
+.filtro-input::placeholder {
+  color: #94a3b8;
+}
+
+.filtros-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.filtrar-btn,
+.limpar-btn {
+  padding: 9px 18px;
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: background-color 0.2s ease;
+}
+
+.filtrar-btn {
+  background-color: #2563eb;
+  color: #fff;
+}
+.filtrar-btn:hover {
+  background-color: #1d4ed8;
+}
+.limpar-btn {
+  background: transparent;
+  color: #475569;
+  border: 1px solid var(--border, #e2e8f0);
+}
+.limpar-btn:hover {
+  background: #f1f5f9;
+}
+
+.estado-vazio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  gap: 8px;
+  color: var(--text-m, #64748b);
+}
+.estado-icone {
+  font-size: 36px;
+}
+.estado-titulo {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-h);
+}
+.estado-sub {
+  font-size: 13px;
+  color: var(--text-m);
+}
+
+.editais-table ::v-deep th {
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  color: var(--text-m) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: #f8fafc !important;
+}
+
+.editais-table ::v-deep td {
+  font-size: 13.5px;
+  color: var(--text-b);
+  border-bottom: 1px solid var(--border) !important;
+}
+
+.editais-table ::v-deep tr:hover td {
+  background: #f8fafc;
+}
+
+.nome-cell {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  max-width: 260px;
+}
+
+.badge-modalidade {
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.badge-ganho {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: #dcfce7;
+  color: #166534;
+}
+
+.btn-ver {
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 7px;
+  border: 1px solid #2563eb;
+  color: #2563eb;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-ver:hover {
+  background: #eff6ff;
+}
 </style>
