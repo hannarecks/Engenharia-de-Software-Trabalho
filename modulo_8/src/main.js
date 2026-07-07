@@ -6,6 +6,12 @@ import router from "./router";
 
 Vue.config.productionTip = false
 
+if (typeof document.hasAttribute !== 'function') {
+  document.hasAttribute = function () {
+    return false
+  }
+}
+
 new Vue({
   store,
   router,
