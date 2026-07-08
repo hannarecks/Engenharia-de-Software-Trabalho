@@ -3,7 +3,7 @@
     <div class="page-header">
       <div>
         <div class="page-title">Relatório de Divergências</div>
-        <div class="page-subtitle">5 ocorrências identificadas · Atualizado em 25/06/2025</div>
+        <div class="page-subtitle">{{ divergenciasFormatadas.length }} ocorrência(s) identificada(s)</div>
       </div>
       <div class="flex-row">
         <button class="btn-secondary">📄 Exportar PDF</button>
@@ -43,8 +43,7 @@
               <div class="div-title">{{ div.title }}</div>
               <div class="div-desc">{{ div.desc }}</div>
               <div class="div-meta">
-                <span class="div-tag">{{ div.clause }}</span>
-                <span class="div-tag">{{ div.category }}</span>
+                <span class="div-tag">{{ div.campo }}</span>
                 <span class="badge" :class="div.statusClass" style="font-size: 11px">{{ div.status }}</span>
               </div>
             </div>
@@ -73,7 +72,7 @@
 
         <div class="panel">
           <div class="panel-header">
-            <div class="panel-title">📋 Por Categoria</div>
+            <div class="panel-title">📋 Por Campo</div>
           </div>
           <div class="panel-body">
             <div
@@ -92,23 +91,52 @@
 </template>
 
 <script>
-import { divergencias, severitySummary, categoryCount } from '@/data/mockData'
+import { formatDivergencia } from '@/models/divergencia'
 
 export default {
   name: 'TabDivergencias',
   data() {
     return {
       filter: '',
-      divergencias,
-      severitySummary,
-      categoryCount,
     }
   },
   computed: {
-    filteredDivergencias() {
-      if (!this.filter) return this.divergencias
-      return this.divergencias.filter(d => d.sev === this.filter)
+    divergenciasFormatadas() {
+      return this.$store.getters['divergencias/divergencias'].map(formatDivergencia)
     },
+    filteredDivergencias() {
+      if (!this.filter) return this.divergenciasFormatadas
+      return this.divergenciasFormatadas.filter(d => d.sev === this.filter)
+    },
+    // Substitui o mock severitySummary: soma real das divergências
+    // carregadas, agrupadas pela mesma severidade usada nos badges.
+    severitySummary() {
+      const total = this.divergenciasFormatadas.length
+      const contagem = { high: 0, medium: 0, low: 0 }
+      this.divergenciasFormatadas.forEach((d) => { contagem[d.sev] = (contagem[d.sev] || 0) + 1 })
+      return [
+        { label: 'Alta', count: contagem.high, total: total || 1, color: '#EF4444' },
+        { label: 'Média', count: contagem.medium, total: total || 1, color: '#B45309' },
+        { label: 'Baixa', count: contagem.low, total: total || 1, color: '#2563EB' },
+      ]
+    },
+    // Substitui o mock categoryCount: mod8_divergencia não tem coluna
+    // de categoria, então agrupamos pelo campo divergente (o dado real
+    // mais próximo disso que existe no schema).
+    categoryCount() {
+      const contagem = {}
+      this.divergenciasFormatadas.forEach((d) => {
+        contagem[d.campo] = (contagem[d.campo] || 0) + 1
+      })
+      return Object.entries(contagem).map(([name, n]) => ({ name, n }))
+    },
+  },
+  async created() {
+    await this.$store.dispatch('contratos/fetchContratoPrincipal')
+    const contrato = this.$store.getters['contratos/contratoAtual']
+    if (contrato) {
+      this.$store.dispatch('divergencias/fetchDivergencias', contrato.id)
+    }  // TODO: back ai
   },
   methods: {
     severityLabel(sev) {

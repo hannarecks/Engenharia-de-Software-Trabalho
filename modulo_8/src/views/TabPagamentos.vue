@@ -190,8 +190,16 @@
 </template>
 
 <script>
+// TODO: verificar se o back foi, onde tiver comentário e TODO foi eu
+// "payments" (parcelas 1/8, 2/8...) e "orcamento" (execução em R$) não
+// têm tabela correspondente no banco: mod8_pagamento modela só as 4
+// etapas do ciclo de pagamento (empenho/nota fiscal/liquidação/
+// pagamento), sem valores monetários por etapa/parcela. Ficam como
+// dado ilustrativo (mock), mesmo critério aplicado às demais telas
+// fora do escopo Must/Should have do MoSCoW.
 import { payments, portalRecords, orcamento } from '@/data/mockData'
 import { buscarPorCnpj, buscarPorNome, sincronizar } from '@/services/portalTransparencia'
+import { formatCicloPagamento } from '@/models/pagamento' // TODO: back
 
 export default {
   name: 'TabPagamentos',
@@ -207,15 +215,6 @@ export default {
       sincronizacaoErro: '',
       ultimaSincronizacao: '',
 
-      // Ciclo de pagamento (RF-6)
-      cicloPagamento: [
-        { id: 'empenho', label: 'Empenho', status: 'pending' },
-        { id: 'notaFiscal', label: 'Nota Fiscal', status: 'pending' },
-        { id: 'liquidacao', label: 'Liquidação', status: 'pending' },
-        { id: 'pagamento', label: 'Pagamento', status: 'pending' },
-      ],
-      cicloErro: '',
-
       // Consulta ao Portal da Transparência (RF-6)
       buscaTipo: 'cnpj',
       buscaValor: '',
@@ -226,6 +225,15 @@ export default {
     }
   },
   computed: {
+    // Ciclo de pagamento (RF-6), agora vindo de mod8_pagamento via
+    // store/modules/pagamentos.js — que já existia, mas ainda não
+    // tinha sido conectado a esta tela (o array era hardcoded).
+    cicloPagamento() {
+      return formatCicloPagamento(this.$store.getters['pagamentos/pagamentos'])
+    },
+    cicloErro() {
+      return this.$store.getters['pagamentos/erro'] || ''
+    }, // TODO: back
     filteredPayments() {
       if (!this.filter) return this.payments
       return this.payments.filter(p => p.status === this.filter)
@@ -264,16 +272,29 @@ export default {
       }[status]
     },
 
-    // Regra de negócio: não deixa concluir uma etapa sem a anterior estar concluída (CT-20)
-    concluirEtapa(index) {
-      this.cicloErro = ''
+    // Regra de negócio: não deixa concluir uma etapa sem a anterior estar
+    // concluída (CT-20). A mesma regra também é garantida no banco pelo
+    // trigger mod8_valida_sequencia_pagamento — a checagem aqui só evita
+    // uma viagem desnecessária ao servidor.
+    async concluirEtapa(index) {
+      this.$store.commit('pagamentos/SET_ERRO', null)
       const etapaAnterior = this.cicloPagamento[index - 1]
       if (etapaAnterior && etapaAnterior.status !== 'done') {
-        this.cicloErro = `Conclua a etapa "${etapaAnterior.label}" antes de avançar para "${this.cicloPagamento[index].label}".`
+        this.$store.commit(
+          'pagamentos/SET_ERRO',
+          `Conclua a etapa "${etapaAnterior.label}" antes de avançar para "${this.cicloPagamento[index].label}".`
+        )
         return
       }
-      this.cicloPagamento[index].status = 'done'
-    },
+      const pagamento = this.cicloPagamento[index]
+      const contrato = this.$store.getters['contratos/contratoAtual']
+      if (pagamento && contrato) {
+        await this.$store.dispatch('pagamentos/concluirEtapa', {
+          pagamentoId: pagamento.id,
+          contratoId: contrato.id,
+        })
+      }
+    }, // TODO: back nesses tres de cima ate o comentario, modificado.
 
     // Sincronização geral do Portal (botão do cabeçalho)
     async sincronizarPortal() {
@@ -315,6 +336,13 @@ export default {
       }
     },
   },
+  async created() {
+    await this.$store.dispatch('contratos/fetchContratoPrincipal')
+    const contrato = this.$store.getters['contratos/contratoAtual']
+    if (contrato) {
+      this.$store.dispatch('pagamentos/fetchPagamentos', contrato.id)
+    }
+  }, // TODO: back nesse trecho, add.
 }
 </script>
 

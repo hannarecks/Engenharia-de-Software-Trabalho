@@ -54,6 +54,17 @@ export default {
         commit('SET_CARREGANDO', false)
       }
     },
+
+    async fetchContratoPrincipal({ state, dispatch }) {
+      if (state.contratos.length === 0) {
+        await dispatch('fetchContratos')
+      }
+      const primeiro = state.contratos[0]
+      if (primeiro && (!state.contratoAtual || state.contratoAtual.id !== primeiro.id)) {
+        await dispatch('fetchContrato', primeiro.id)
+      }
+    },
+
     async salvarCampoManual({ state, dispatch }, { id, campo, valor }) {
       const camposAtuais = state.contratoAtual?.camposEditados || {}
       await updateContrato(id, {

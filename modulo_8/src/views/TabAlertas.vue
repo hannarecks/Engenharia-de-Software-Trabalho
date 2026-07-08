@@ -75,10 +75,21 @@
 </template>
 
 <script>
-import { alerts, alertConfig } from '@/data/mockData'
+// alertConfig (liga/desliga cada tipo de alerta) não tem tabela
+// correspondente no banco — é preferência local de interface, então
+// continua como mock, mesmo critério usado para telas fora do escopo
+// Must/Should have do MoSCoW.
+import { alertConfig } from '@/data/mockData'
+import { formatAlerta } from '@/models/alerta'
 
 // Liga cada alerta (por id) à configuração correspondente.
 // Alertas que não aparecem aqui não são afetados por nenhum toggle.
+// OBS: esse mapa foi feito para os ids fixos (1, 2, 3...) do mock
+// antigo. Como mod8_alerta usa uuid como id, nenhum alerta vindo do
+// banco vai bater com essas chaves — na prática o toggle "Ligar/
+// desligar tipo de alerta" fica sem efeito até que exista uma coluna
+// própria de "tipo/categoria de alerta" no banco para basear esse
+// vínculo. Mantido aqui sem alterações, só documentando o motivo.
 const alertConfigMap = {
   1: 1, // Pagamento vencido há 28 dias -> Pagamento vencido
   2: 3, // Divergência crítica sem resolução -> Nova divergência
@@ -91,7 +102,6 @@ export default {
   name: 'TabAlertas',
   data() {
     return {
-      alerts,
       config: alertConfig,
       activeFilter: 'all',
       filters: [
@@ -103,12 +113,22 @@ export default {
     }
   },
   computed: {
+    alerts() {
+      return this.$store.getters['alertas/alertas'].map(formatAlerta)
+    },
     filteredAlerts() {
       return this.alerts
         .filter(a => this.activeFilter === 'all' || a.type === this.activeFilter)
         .filter(a => this.isAlertEnabled(a))
     },
   },
+  async created() {
+    await this.$store.dispatch('contratos/fetchContratoPrincipal')
+    const contrato = this.$store.getters['contratos/contratoAtual']
+    if (contrato) {
+      this.$store.dispatch('alertas/fetchAlertas', contrato.id)
+    }
+  }, // TODO: back nesses 2 trecho, add.
   methods: {
     isAlertEnabled(alert) {
       const configId = alertConfigMap[alert.id]

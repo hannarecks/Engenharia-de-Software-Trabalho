@@ -314,6 +314,36 @@ export default {
       this.$emit("input", false);
     },
 
+    formatarData(data) {
+      if (!data) return "—";
+      return new Date(data).toLocaleDateString("pt-BR");
+    },
+
+    // Formata os dados coletados no formulário (que tem mais campos do
+    // que o schema de mod8_contrato guarda em colunas próprias) em
+    // texto legível para as colunas de texto livre da tabela.
+    montarTextoReajuste() {
+      if (!this.form.indiceReajuste || this.form.indiceReajuste === "Nenhum") {
+        return "Sem reajuste previsto";
+      }
+      const previsao = this.form.dataPrevistaReajuste
+        ? ` (próximo reajuste previsto para ${this.formatarData(this.form.dataPrevistaReajuste)})`
+        : "";
+      return `Índice: ${this.form.indiceReajuste}${previsao}`;
+    },
+    montarTextoFormaPagamento() {
+      const label =
+        this.opcoesFormaPagamento.find((o) => o.value === this.form.formaPagamento)
+          ?.text || this.form.formaPagamento;
+      return `${label} — pagamento em até ${this.form.prazoPagamentoDias} dia(s) após a nota fiscal`;
+    },
+    montarTextoGestor() {
+      const contato = [this.form.gestorEmail, this.form.gestorTelefone]
+        .filter(Boolean)
+        .join(", ");
+      return contato ? `${this.form.gestorNome} (${contato})` : this.form.gestorNome;
+    },
+
     async cadastrar() {
       const formOk = this.$refs.form.validate();
       const arquivoOk = !!this.arquivoContrato;
@@ -336,35 +366,80 @@ export default {
           throw new Error("Falha ao enviar o arquivo do contrato.");
         }
 
+        const { data: publicUrlData } = supabase.storage
+          .from("contract-documents")
+          .getPublicUrl(path);
+
         const {
           data: { user },
         } = await supabase.auth.getUser();
 
-        const { error: insertError } = await supabase
-          .from("mod8_contratos")
+        // 1. Contrato — tabela real é "mod8_contrato" (singular), com
+        // as colunas definidas em mod8_schema.sql. Vários campos do
+        // formulário (número do contrato, e-mail/telefone do gestor,
+        // prazo de pagamento em dias, índice de reajuste) não têm
+        // coluna própria no schema, então são condensados em texto
+        // dentro das colunas livres correspondentes (reajuste,
+        // forma_pagamento, gestor_contrato) para não perder o que foi
+        // digitado no formulário.
+        const { data: novoContrato, error: insertError } = await supabase
+          .from("mod8_contrato")
           .insert({
-            edital_referencia: this.edital?.nome ?? null,
-            numero_contrato: this.form.numeroContrato,
-            data_assinatura: this.form.dataAssinatura,
-            data_inicio_vigencia: this.form.dataInicioVigencia,
-            data_fim_vigencia: this.form.dataFimVigencia,
-            valor_total: Number(this.form.valorTotal),
-            gestor_nome: this.form.gestorNome,
-            gestor_email: this.form.gestorEmail,
-            gestor_telefone: this.form.gestorTelefone || null,
-            forma_pagamento: this.form.formaPagamento,
-            prazo_pagamento_dias: Number(this.form.prazoPagamentoDias),
-            indice_reajuste: this.form.indiceReajuste,
-            data_prevista_reajuste: this.form.dataPrevistaReajuste || null,
-            alerta_dias_antecedencia: Number(this.form.alertaDiasAntecedencia),
-            canal_notificacao: this.form.canalNotificacao,
-            contrato_arquivo_path: path,
-            contrato_arquivo_nome: this.arquivoContrato.name,
-            created_by: user?.id ?? null,
-          });
+            id_usuario: user?.id ?? null,
+            contratante: null,
+            objeto: this.edital?.descricao || this.edital?.nome || this.form.numeroContrato,
+            vigencia_inicio: this.form.dataInicioVigencia,
+            vigencia_fim: this.form.dataFimVigencia,
+            reajuste: this.montarTextoReajuste(),
+            preco: Number(this.form.valorTotal),
+            forma_pagamento: this.montarTextoFormaPagamento(),
+            gestor_contrato: this.montarTextoGestor(),
+            campos_editados_manualmente: {},
+            status: "vigente",
+          })
+          .select()
+          .single();
 
         if (insertError) {
           throw new Error("Falha ao salvar o contrato no banco de dados.");
+        }
+
+        // 2. Documento — o PDF enviado vira uma linha em mod8_documento,
+        // vinculada ao contrato recém-criado.
+        const { error: documentoError } = await supabase
+          .from("mod8_documento")
+          .insert({
+            id_contrato_m8: novoContrato.id,
+            tipo: "contrato_enviado",
+            arquivo_nome: this.arquivoContrato.name,
+            arquivo_url: publicUrlData.publicUrl,
+            uploaded_by: user?.id ?? null,
+          });
+
+        if (documentoError) {
+          throw new Error("Contrato salvo, mas houve falha ao vincular o arquivo enviado.");
+        }
+
+        // 3. Alerta de vencimento — usa os campos "dias de antecedência"
+        // e "canal de notificação" do formulário, que não tinham
+        // nenhuma tabela vinculada antes (eram descartados no final do
+        // cadastro). mod8_alerta não guarda "dias de antecedência" como
+        // coluna própria, então isso vira parte do texto do alerta.
+        const canais = this.form.canalNotificacao
+          .map((c) => this.opcoesCanalNotificacao.find((o) => o.value === c)?.text || c)
+          .join(", ");
+        const { error: alertaError } = await supabase.from("mod8_alerta").insert({
+          id_contrato_m8: novoContrato.id,
+          tipo: `Vencimento do contrato — aviso ${this.form.alertaDiasAntecedencia} dia(s) antes, via ${canais}`,
+          data_vencimento: this.form.dataFimVigencia,
+          status_envio: "pendente",
+        });
+
+        if (alertaError) {
+          console.error("Falha ao criar alerta de vencimento:", alertaError);
+          // Não interrompe o fluxo: o contrato e o documento já foram
+          // salvos com sucesso, o alerta é um complemento (RF-5,
+          // Should have).
         }
 
         this.$emit("sucesso");

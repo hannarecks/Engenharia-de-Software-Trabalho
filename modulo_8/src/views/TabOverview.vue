@@ -3,10 +3,7 @@
     <div class="page-header">
       <div>
         <div class="page-title">Gestão de Contratos</div>
-        <div class="page-subtitle" v-if="contratoAtual">
-          {{ contratoAtual.objeto }} · {{ contratoAtual.contratante }} · Vigência: {{ contratoAtual.vigenciaInicio }} – {{ contratoAtual.vigenciaFim }}
-        </div>
-        <div class="page-subtitle" v-else>Nenhum contrato cadastrado ainda.</div>
+        <div class="page-subtitle">Editais vencidos, disponíveis para geração de contrato</div>
       </div>
     </div>
 
@@ -131,6 +128,8 @@
       v-model="modalAberto"
       :edital="editalSelecionado"
       @participar="onParticipar"
+      @sucesso="onCadastroSucesso"
+      @erro="onCadastroErro"
     />
 
     <v-snackbar

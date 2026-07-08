@@ -4,6 +4,8 @@ import HomeView from '../views/TabOverview.vue'
 import TabCompare from '../views/TabCompare.vue'
 import TabDivergencias from '@/views/TabDivergencias.vue'
 import TabPagamentos from '@/views/TabPagamentos.vue'
+import TabAlertas from '@/views/TabAlertas.vue'
+import TabTarefas from '@/views/TabTarefas.vue'
 import Login from '@/views/login.vue'
 import store from '@/store'
 
