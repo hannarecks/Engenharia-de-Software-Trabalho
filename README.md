@@ -48,59 +48,88 @@ Adjudicação & Homologação
 
 | Tecnologia | Uso |
 |---|---|
-| JavaScript & Node.js | Backend (a confirmar com os demais grupos) |
-| Supabase | BaaS — PostgreSQL + Auth + Realtime |
-| PostgreSQL | Banco de dados relacional (via Supabase) |
-| Portal da Transparência | API pública de dados governamentais |
+| Vue 2 + Vuetify | Frontend (SPA) — não há backend/API própria; o frontend fala direto com o Supabase |
+| Vuex + Vue Router | Gerência de estado e navegação do SPA |
+| Supabase | BaaS — PostgreSQL + Auth + Storage, consumido via `@supabase/supabase-js` |
+| PostgreSQL | Banco de dados relacional (via Supabase), com RLS e triggers para regras de negócio |
+| Portal da Transparência | Fonte de dados de empenho/pagamento (RF-6) — **ainda simulado**, pois o portal do município não tem API pública documentada |
 | PlantUML | Geração de diagramas de arquitetura |
 
 ---
 
 ## Estrutura do Projeto
 
+Não existe backend próprio: o frontend (Vue) fala direto com o Supabase. A árvore abaixo reflete o projeto real em `modulo_8/`:
+
 ```
-modulo-8/ 
-├── docs/                              
-│   ├── visao-requisitos.md 
-│   ├── DAS.md 
-│   └── diagrams/ 
-│       ├── componentes.puml 
-│       └── implantacao.puml 
-├── src/ 
-│   ├── models/                          # Camada de Dados e Regras de Negócio 
-│   │   ├── auth-schema.js               # Definições de usuários (vêm do auth) 
-│   │   ├── doc-comparison-model.js      # Lógica do Épico 1 (Processor) 
-│   │   └── portal-data-model.js         # Estrutura do Épico 2 (Integrator) 
-│   │ 
-│   ├── controllers/                   
-│   │   ├── auth-controller.js          
-│   │   ├── processor-controller.js       
-│   │   └── integrator-controller.js   
-│   │ 
-│   ├── views/                      
-│   │   ├── auth-ui/                  
-│   │   ├── processor-ui/             
-│   │   └── integrator-ui/              
-│   │ 
-│   └── shared/                           
-│       └── supabase-client.js         
-├── tests/                               
-├── .env.example 
-├── .gitignore 
-└── README.md 
+modulo_8/
+├── docs/                                (na raiz do repo)
+│   ├── visao-requisitos.md
+│   ├── DAS.md
+│   └── diagrams/
+│       ├── diagramaComponentes.puml
+│       ├── diagramaImplantação.puml
+│       ├── componentes.jpeg
+│       └── implantacao.jpeg
+├── mod8_schema.sql                       # Schema das tabelas do módulo
+├── mod8_seed_teste.sql                   # Dados de teste (seed)
+├── src/
+│   ├── views/                            # Telas (Vue components)
+│   │   ├── TabOverview.vue               # Editais ganhos + cadastro de contrato
+│   │   ├── TabDivergencias.vue
+│   │   ├── TabPagamentos.vue
+│   │   ├── TabAlertas.vue
+│   │   ├── TabTarefas.vue                # Could have — ainda mockado
+│   │   ├── TabCompare.vue                # Ainda não conectado ao banco
+│   │   └── login.vue
+│   ├── components/
+│   │   ├── AppSidebar.vue
+│   │   ├── ContratoModal.vue
+│   │   ├── CadastroContratoModal.vue
+│   │   └── NewTaskModal.vue
+│   ├── store/                            # Vuex — estado por domínio
+│   │   ├── index.js
+│   │   └── modules/
+│   │       ├── auth.js
+│   │       ├── contratos.js
+│   │       ├── divergencias.js
+│   │       ├── pagamentos.js
+│   │       ├── documentos.js
+│   │       └── alertas.js
+│   ├── services/                         # Chamadas ao supabase-js
+│   │   ├── supabase.js                   # Cliente Supabase
+│   │   ├── auth.js
+│   │   ├── contratos.js
+│   │   ├── divergencias.js
+│   │   ├── pagamentos.js
+│   │   ├── documentos.js
+│   │   ├── alertas.js
+│   │   └── portalTransparencia.js        # Mockado (sem API pública confirmada)
+│   ├── models/                           # Tradução linha-do-banco → formato da UI
+│   │   ├── contrato.js
+│   │   ├── divergencia.js
+│   │   ├── alerta.js
+│   │   ├── documento.js
+│   │   └── pagamento.js
+│   ├── data/mockData.js                  # Dados mockados (telas fora do MoSCoW prioritário)
+│   ├── router/index.js
+│   ├── plugins/vuetify.js
+│   └── main.js
+├── .env.example
+├── .gitignore
+└── README.md
 ```
 
 ---
 
 ## Diagramas
 ### Diagrama de Componentes
-[imgDiagramadeComponentes](https://github.com/hannarecks/Engenharia-de-Software-Trabalho/blob/ff125fc778ff391d8a92045d2835715297eb0425/docs/diagrams/componentes.jpeg)
+[Imagem](docs/diagrams/componentes.jpeg) · [Fonte (.puml)](docs/diagrams/diagramaComponentes.puml)
 
-[.puml](https://github.com/hannarecks/Engenharia-de-Software-Trabalho/blob/ff125fc778ff391d8a92045d2835715297eb0425/docs/diagramaComponentes.puml)
+### Diagrama de Implantação
+[Imagem](docs/diagrams/implantacao.jpeg) · [Fonte (.puml)](docs/diagrams/diagramaImplantação.puml)
 
-[imgDiagramadeImplnatacao](https://github.com/hannarecks/Engenharia-de-Software-Trabalho/blob/ca8d6357e996cf1d8e3ce4b1d4d6b5e314622866/docs/diagrams/implantacao.jpeg)
-
-[.puml](https://github.com/hannarecks/Engenharia-de-Software-Trabalho/blob/ff125fc778ff391d8a92045d2835715297eb0425/docs/diagramaImplanta%C3%A7%C3%A3o.puml)
+> ⚠️ Ambos os diagramas foram atualizados para refletir a arquitetura real (SPA Vue + Supabase, sem backend próprio). Os arquivos `.jpeg` precisam ser reexportados a partir dos `.puml` corrigidos (ex.: via [plantuml.com/plantuml](https://www.plantuml.com/plantuml) ou a extensão PlantUML do VS Code) — não foi possível renderizá-los automaticamente neste ambiente.
 
 ## Equipe
 

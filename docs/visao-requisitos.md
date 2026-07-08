@@ -2,9 +2,6 @@
 
 > Gestão de Contratos e Atas de Registro de Preço
 
-**Última atualização:** Maio/2026
-**Stakeholder:** Fabrício (advogado, especialista do domínio)
-**Equipe:** Érika, Fabiane, Geórgia, Giovana e Hanna
 
 ---
 
@@ -51,6 +48,7 @@ Todas essas atividades exigem considerável tempo e concentração, sem nenhum s
 
 ### ✅ Dentro do Escopo
 
+- Listagem dos editais já ganhos (vindos do Módulo 1) e cadastro do contrato correspondente, a partir da homologação
 - Comparação automatizada entre o contrato enviado pelo órgão público e a minuta prevista no edital
 - Geração de relatórios de divergências contratuais que possam impactar a assinatura
 - Resumo estruturado dos contratos (objeto, vigência, valores, prazos e responsáveis)
@@ -90,6 +88,7 @@ Todas essas atividades exigem considerável tempo e concentração, sem nenhum s
 | RF-6 | Monitoramento de Pagamentos | Controlar empenho, liquidação e pagamento via Portal da Transparência |
 | RF-7 | Gestão de Tarefas e Anotações | Permitir anotações no quadro para comunicação entre fiscais e gestores |
 | RF-8 | Filtros de Status | Filtrar e separar tarefas entre "atrasadas", "pendentes" e "concluídas" |
+| RF-9 | Listagem de Editais e Cadastro de Contrato | Listar os editais já ganhos (Módulo 1) e permitir o cadastro do contrato correspondente, com upload do PDF assinado |
 
 ---
 
@@ -112,6 +111,7 @@ Todas essas atividades exigem considerável tempo e concentração, sem nenhum s
 ├── RF-1  Comparação de Documentos
 ├── RF-2  Geração de Relatório de Divergências
 ├── RF-3  Resumo do Contrato
+├── RF-9  Listagem de Editais e Cadastro de Contrato
 └── RNF-3 Integração com Portal da Transparência
 
 🟡 SHOULD HAVE — importante, mas não bloqueia o MVP
@@ -133,6 +133,8 @@ Todas essas atividades exigem considerável tempo e concentração, sem nenhum s
 └── RNF-1 Acessibilidade
      ↳ Prevista para versões futuras, após o MVP funcional
 ```
+
+> **Nota de reconciliação com o schema:** o `mod8_schema.sql` trata `mod8_documento` (RF-1/RF-4) como Must have por inteiro, já que a mesma tabela atende aos dois requisitos — não faz sentido dividir a implementação. Na prática, RF-4 (armazenamento de anexos) foi entregue junto com RF-1, mesmo classificado aqui como Should have.
 
 ---
 
