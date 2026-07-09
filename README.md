@@ -40,7 +40,6 @@ Adjudicação & Homologação
 |---|---|
 | [📋 Visão e Requisitos](docs/visao-requisitos.md) | Contexto, RF, RNF, MoSCoW, escopo e restrições |
 | [🏗️ Arquitetura (DAS)](docs/DAS.md) | Componentes, diagramas de implantação e decisões técnicas |
-| [🗂️ Jira — Sprints e Backlog](https://hannarecks.atlassian.net/jira/software/projects/SCRUM/boards/1) | Acompanhamento das sprints e histórias de usuário |
 
 ---
 
