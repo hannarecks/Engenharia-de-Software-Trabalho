@@ -1,6 +1,6 @@
 <template>
   <v-card width="256" class="mx-auto">
-    <v-navigation-drawer permanent color="#0277BD">
+    <v-navigation-drawer permanent color="#f7f7edd7">
       <v-list-item>
         <v-list-item-content>
           <v-list-item-title class="text-h6"> Módulo 8 </v-list-item-title>
