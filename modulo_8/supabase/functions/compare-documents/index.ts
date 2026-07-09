@@ -40,7 +40,24 @@ Responda APENAS com um JSON válido, sem texto adicional, no formato:
   ]
 }`
  
+// CORS: o frontend (localhost:8080 em dev, ou o domínio de produção) chama
+// esta function de um domínio diferente do *.supabase.co — o navegador
+// primeiro manda um preflight OPTIONS perguntando se isso é permitido.
+// Sem esses headers (e sem responder ao OPTIONS explicitamente), o
+// preflight falha e o POST de verdade nunca chega a ser enviado.
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+}
+ 
 serve(async (req) => {
+  // Responde ao preflight antes de qualquer outra coisa — sem corpo,
+  // só os headers de CORS com status 200.
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
+  }
+ 
   let comparisonId: string | undefined
   const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY)
  
@@ -181,6 +198,6 @@ ${contrato.extracted_text.slice(0, MAX_CHARS_PER_DOC)}`,
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { 'content-type': 'application/json' },
+    headers: { ...corsHeaders, 'content-type': 'application/json' },
   })
 }
