@@ -7,6 +7,8 @@
       </div>
     </div>
 
+    <div v-if="erro" class="erro-banner">{{ erro }}</div>
+
     <!-- Painel de Filtros -->
     <v-row no-gutters>
       <v-col class="kpi-card" cols="12">
@@ -73,7 +75,11 @@
     <v-row no-gutters style="margin-top: 20px">
       <v-col cols="12">
         <div class="kpi-card">
-          <div v-if="editaisFiltrados.length === 0" class="estado-vazio">
+          <div v-if="carregando" class="estado-vazio">
+            <span class="estado-titulo">Carregando editais...</span>
+          </div>
+
+          <div v-else-if="editaisFiltrados.length === 0" class="estado-vazio">
             <span class="estado-icone">📭</span>
             <span class="estado-titulo">Nenhum edital encontrado</span>
             <span class="estado-sub"
@@ -111,7 +117,9 @@
             </template>
 
             <template #item.status="{ item }">
-              <span class="badge-ganho">Ganho</span>
+              <span class="badge-status" :class="statusClasse(item.status)">{{
+                statusLabel(item.status)
+              }}</span>
             </template>
 
             <template #item.acoes="{ item }">
@@ -191,81 +199,20 @@ export default {
         { text: "Status", value: "status", sortable: false },
         { text: "Ações", value: "acoes", sortable: false },
       ],
-      editais: [
-        {
-          id: 1,
-          nome: "Pregão Eletrônico nº 07/2026 — Limpeza e Manutenção de Áreas Verdes",
-          modalidade: "Pregão Eletrônico",
-          cidade: "São Paulo",
-          data_abertura: "2026-03-10T09:00:00",
-          data_fechamento: "2027-03-10T09:00:00",
-          status: "GANHO",
-          descricao:
-            "Contratação de empresa para limpeza e manutenção de áreas verdes municipais.",
-          arquivo_path: null,
-        },
-        {
-          id: 2,
-          nome: "Concorrência Pública nº 02/2026 — Fornecimento de Equipamentos de TI",
-          modalidade: "Concorrência",
-          cidade: "Campinas",
-          data_abertura: "2026-02-15T10:00:00",
-          data_fechamento: "2027-02-15T10:00:00",
-          status: "GANHO",
-          descricao: "Aquisição de computadores, notebooks e periféricos.",
-          arquivo_path: null,
-        },
-        {
-          id: 3,
-          nome: "Pregão Eletrônico nº 12/2026 — Serviços de Segurança Patrimonial",
-          modalidade: "Pregão Eletrônico",
-          cidade: "Rio de Janeiro",
-          data_abertura: "2026-04-01T08:00:00",
-          data_fechamento: "2027-04-01T08:00:00",
-          status: "GANHO",
-          descricao:
-            "Prestação de serviços de vigilância e segurança patrimonial.",
-          arquivo_path: null,
-        },
-        {
-          id: 4,
-          nome: "Dispensa de Licitação nº 05/2026 — Manutenção Predial",
-          modalidade: "Dispensa",
-          cidade: "Belo Horizonte",
-          data_abertura: "2026-01-20T14:00:00",
-          data_fechamento: "2026-07-20T14:00:00",
-          status: "GANHO",
-          descricao:
-            "Serviços de manutenção preventiva e corretiva das instalações.",
-          arquivo_path: null,
-        },
-        {
-          id: 5,
-          nome: "Pregão Eletrônico nº 18/2026 — Material de Escritório",
-          modalidade: "Pregão Eletrônico",
-          cidade: "Curitiba",
-          data_abertura: "2026-05-05T09:30:00",
-          data_fechamento: "2027-05-05T09:30:00",
-          status: "GANHO",
-          descricao: "Fornecimento de materiais de expediente e escritório.",
-          arquivo_path: null,
-        },
-        {
-          id: 6,
-          nome: "Concorrência Pública nº 04/2026 — Obra de Pavimentação",
-          modalidade: "Concorrência",
-          cidade: "São Paulo",
-          data_abertura: "2026-03-25T10:00:00",
-          data_fechamento: "2028-03-25T10:00:00",
-          status: "GANHO",
-          descricao:
-            "Execução de obras de pavimentação asfáltica em vias urbanas.",
-          arquivo_path: null,
-        },
-      ],
     };
   },
   computed: {
+    // Antes era um array fixo aqui no componente (dados fake). Agora vem
+    // do store, que busca em mod1_editais (ver src/services/editais.js).
+    editais() {
+      return this.$store.getters["editais/editais"];
+    },
+    carregando() {
+      return this.$store.getters["editais/carregando"];
+    },
+    erro() {
+      return this.$store.getters["editais/erro"];
+    },
     modalidadesDisponiveis() {
       return [
         ...new Set(this.editais.map((e) => e.modalidade).filter(Boolean)),
@@ -275,7 +222,9 @@ export default {
       return this.editais.filter((e) => {
         if (
           this.filtrosAtivos.nome &&
-          !e.nome.toLowerCase().includes(this.filtrosAtivos.nome.toLowerCase())
+          !(e.nome || "")
+            .toLowerCase()
+            .includes(this.filtrosAtivos.nome.toLowerCase())
         )
           return false;
 
@@ -287,7 +236,7 @@ export default {
 
         if (
           this.filtrosAtivos.cidade &&
-          !e.cidade
+          !(e.cidade || "")
             .toLowerCase()
             .includes(this.filtrosAtivos.cidade.toLowerCase())
         )
@@ -313,6 +262,9 @@ export default {
       });
     },
   },
+  created() {
+    this.$store.dispatch("editais/fetchEditais");
+  },
   methods: {
     aplicarFiltros() {
       this.filtrosAtivos = { ...this.filtros };
@@ -332,6 +284,31 @@ export default {
     formatarData(data) {
       if (!data) return "—";
       return new Date(data).toLocaleDateString("pt-BR");
+    },
+
+    // Mapeia o valor cru de mod1_editais.status (texto livre, sem
+    // constraint no banco) para um rótulo legível e uma cor de badge.
+    // Qualquer status não mapeado aqui cai no "default" (cinza, com o
+    // texto original), então nenhum edital fica sem badge.
+    statusInfo(status) {
+      const mapa = {
+        homologado: { label: "Homologado", classe: "verde" },
+        PENDENTE: { label: "Pendente", classe: "azul" },
+        aberto: { label: "Aberto", classe: "azul" },
+        em_analise: { label: "Em Análise", classe: "amarelo" },
+        suspenso: { label: "Suspenso", classe: "laranja" },
+        deserto: { label: "Deserto", classe: "cinza" },
+        fracassado: { label: "Fracassado", classe: "vermelho" },
+        revogado: { label: "Revogado", classe: "vermelho" },
+        cancelado: { label: "Cancelado", classe: "vermelho" },
+      };
+      return mapa[status] || { label: status || "—", classe: "cinza" };
+    },
+    statusLabel(status) {
+      return this.statusInfo(status).label;
+    },
+    statusClasse(status) {
+      return this.statusInfo(status).classe;
     },
 
     abrirContrato(edital) {
@@ -364,6 +341,15 @@ export default {
 </script>
 
 <style scoped>
+.erro-banner {
+  background: var(--red-lt, #fee2e2);
+  color: var(--red, #9b1c1c);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
 .kpi-card {
   background: var(--white);
   border: 1px solid var(--border);
@@ -514,13 +500,36 @@ export default {
   color: #1d4ed8;
 }
 
-.badge-ganho {
+.badge-status {
   font-size: 12px;
   font-weight: 600;
   padding: 3px 10px;
   border-radius: 20px;
+  display: inline-block;
+}
+.badge-status.verde {
   background: #dcfce7;
   color: #166534;
+}
+.badge-status.azul {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+.badge-status.amarelo {
+  background: #fef9c3;
+  color: #854d0e;
+}
+.badge-status.laranja {
+  background: #ffedd5;
+  color: #c2410c;
+}
+.badge-status.vermelho {
+  background: #fee2e2;
+  color: #991b1b;
+}
+.badge-status.cinza {
+  background: #f1f5f9;
+  color: #475569;
 }
 
 .btn-ver {
