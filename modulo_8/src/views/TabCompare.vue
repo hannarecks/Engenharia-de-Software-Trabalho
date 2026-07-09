@@ -8,7 +8,7 @@
         </div>
       </div>
     </div>
-
+ 
     <!-- Seletor / Upload -->
     <div class="panel" style="margin-bottom: 16px">
       <div class="panel-header">
@@ -40,9 +40,9 @@
               </div>
             </div>
           </div>
-
+ 
           <div class="swap-icon">⇄</div>
-
+ 
           <!-- Contrato -->
           <div style="flex: 1; min-width: 220px">
             <div class="form-label">Documento Comparado (Contrato)</div>
@@ -63,7 +63,7 @@
               @change="onFileSelected($event, 'contrato')"
             ></v-file-input>
           </div>
-
+ 
           <div style="margin-top: 18px">
             <button
               class="btn-primary"
@@ -74,9 +74,9 @@
             </button>
           </div>
         </div>
-
+ 
         <div v-if="erro" class="error-banner">⚠️ {{ erro }}</div>
-
+ 
         <div v-if="ultimaComparacao?.summary" class="summary-row">
           <span
             >🟡
@@ -92,18 +92,18 @@
         </div>
       </div>
     </div>
-
+ 
     <!-- Estado vazio -->
     <div v-if="!ultimaComparacao && !comparando" class="empty-state">
       Envie os dois documentos e clique em "Comparar Agora" para ver o
       resultado.
     </div>
-
+ 
     <!-- Loading -->
     <div v-if="comparando" class="empty-state">
       Extraindo e comparando os documentos, isso pode levar alguns segundos...
     </div>
-
+ 
     <!-- Divergências -->
     <div v-if="ultimaComparacao?.divergences?.length" class="divergences-list">
       <div
@@ -137,7 +137,7 @@
         <div class="divergence-desc">{{ div.descricao }}</div>
       </div>
     </div>
-
+ 
     <div
       v-else-if="ultimaComparacao && !ultimaComparacao.divergences?.length"
       class="empty-state"
@@ -146,11 +146,11 @@
     </div>
   </div>
 </template>
-
+ 
 <script>
 import { supabase } from "@/services/supabase";
 import { extractText, ExtractionError } from "@/utils/documentExtractor";
-
+ 
 export default {
   name: "TabCompare",
   data() {
@@ -175,7 +175,7 @@ export default {
       );
     },
   },
-
+ 
   methods: {
     resetContrato() {
       this.contratoDoc = null;
@@ -183,12 +183,12 @@ export default {
       this.ultimaComparacao = null;
       this.erro = null;
     },
-
+ 
     // Agora só guarda o arquivo em memória, sem fazer nada ainda
     onFileSelected(file, docType) {
       this.erro = null;
       if (!file) return;
-
+ 
       if (docType === "edital_minuta") {
         this.editalFile = file;
         this.editalDoc = null; // reseta o doc salvo se o usuário trocar o arquivo
@@ -197,18 +197,21 @@ export default {
         this.contratoDoc = null;
       }
     },
-
-    async salvarDocumento(file, docType, sessionId) {
+ 
+    // Bug corrigido: não recebe mais sessionId (a tabela mod8_contract_documents
+    // não tem essa coluna — só existia no INSERT anterior, nunca foi usada
+    // pra nada além de tentar gravar um campo inexistente).
+    async salvarDocumento(file, docType) {
       const texto = await extractText(file);
-      const path = `${sessionId}/${docType}/${Date.now()}-${file.name}`;
-
+      const path = `${docType}/${Date.now()}-${file.name}`;
+ 
       const { error: uploadError } = await supabase.storage
         .from("contract-documents")
         .upload(path, file);
-
+ 
       if (uploadError)
         throw new Error("Falha ao enviar arquivo para o storage.");
-
+ 
       const { data, error } = await supabase
         .from("mod8_contract_documents")
         .insert({
@@ -222,56 +225,65 @@ export default {
         })
         .select()
         .single();
-
+ 
       if (error) throw new Error("Falha ao registrar documento no banco.");
       return data;
     },
-
+ 
     async compararDocumentos() {
       this.erro = null;
       this.comparando = true;
       this.ultimaComparacao = null;
-
-      const sessionId = crypto.randomUUID(); // mesmo ID para os dois docs dessa comparação
-
+ 
       try {
-        this.carregandoEdital = true;
-        this.editalDoc = await this.salvarDocumento(
-          this.editalFile,
-          "edital_minuta",
-          sessionId,
-        );
-        this.carregandoEdital = false;
-
-        this.carregandoContrato = true;
-        this.contratoDoc = await this.salvarDocumento(
-          this.contratoFile,
-          "contrato",
-          sessionId,
-        );
-        this.carregandoContrato = false;
-
+        // Bug corrigido: antes, sempre chamava salvarDocumento(this.editalFile, ...)
+        // mesmo quando editalDoc/contratoDoc já vinham prontos do processo
+        // (editalFile ficava null nesse caso) — isso derrubava a extração de
+        // texto com "Nenhum arquivo selecionado.". Agora só faz upload do que
+        // ainda não foi salvo.
+        if (!this.editalDoc) {
+          this.carregandoEdital = true;
+          this.editalDoc = await this.salvarDocumento(
+            this.editalFile,
+            "edital_minuta"
+          );
+          this.carregandoEdital = false;
+        }
+ 
+        if (!this.contratoDoc) {
+          this.carregandoContrato = true;
+          this.contratoDoc = await this.salvarDocumento(
+            this.contratoFile,
+            "contrato"
+          );
+          this.carregandoContrato = false;
+        }
+ 
+        // Bug corrigido: "session_id" não existe em mod8_document_comparisons
+        // (colunas reais: id, edital_id, edital_document_id,
+        // contrato_document_id, status, divergences, summary,
+        // error_message, created_at, completed_at) — o insert sempre
+        // falhava com "Could not find the 'session_id' column".
         const { data: comparisonRow, error: insertError } = await supabase
           .from("mod8_document_comparisons")
           .insert({
-            session_id: sessionId,
             edital_document_id: this.editalDoc.id,
             contrato_document_id: this.contratoDoc.id,
             status: "pending",
           })
           .select()
           .single();
-
+ 
         if (insertError)
           throw new Error("Falha ao criar registro de comparação.");
-
+ 
         const { data, error: fnError } = await supabase.functions.invoke(
           "compare-documents",
-          { body: { comparison_id: comparisonRow.id } },
+          { body: { comparison_id: comparisonRow.id } }
         );
-
+ 
         if (fnError) throw new Error("Falha ao processar comparação via IA.");
-
+ 
         this.ultimaComparacao = data;
       } catch (err) {
         this.carregandoEdital = false;
@@ -287,7 +299,7 @@ export default {
   },
 };
 </script>
-
+ 
 <style scoped>
 .selector-row {
   display: flex;
@@ -307,7 +319,7 @@ export default {
   font-size: 12px;
   color: var(--text-m);
 }
-
+ 
 .doc-loaded {
   font-size: 13px;
   padding: 8px 10px;
@@ -336,7 +348,7 @@ export default {
   color: var(--text-m);
   margin-top: 4px;
 }
-
+ 
 .error-banner {
   margin-top: 12px;
   padding: 10px 12px;
@@ -345,7 +357,7 @@ export default {
   color: #9f1239;
   font-size: 13px;
 }
-
+ 
 .empty-state {
   padding: 32px;
   text-align: center;
@@ -354,7 +366,7 @@ export default {
   border: 1px dashed var(--border);
   border-radius: 8px;
 }
-
+ 
 .divergences-list {
   display: flex;
   flex-direction: column;
@@ -374,7 +386,7 @@ export default {
 .divergence-card.sev-baixa {
   border-left: 4px solid var(--border);
 }
-
+ 
 .divergence-header {
   display: flex;
   justify-content: space-between;
@@ -390,7 +402,7 @@ export default {
   font-size: 11px;
   font-weight: 600;
 }
-
+ 
 .divergence-columns {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -412,13 +424,13 @@ export default {
   font-size: 12.5px;
   color: var(--text-b);
 }
-
+ 
 .divergence-desc {
   font-size: 12px;
   color: var(--text-m);
   font-style: italic;
 }
-
+ 
 @media (max-width: 900px) {
   .divergence-columns {
     grid-template-columns: 1fr;
